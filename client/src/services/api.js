@@ -1,14 +1,15 @@
 /**
- * API service — calls the Express server which proxies to FastAPI.
+ * API service — calls FastAPI directly via Vite proxy.
  *
- * All API calls go through the Express server (port 5000) which:
- * 1. Validates the request
- * 2. Calls FastAPI (port 8000) for the LangGraph analysis
- * 3. Saves the result to MongoDB
- * 4. Returns the result to React
+ * Vite proxies /api/* → FastAPI (port 8000) with path rewrite:
+ *   /api/analyze → /analyze
+ *   /api/portfolio → /portfolio
+ *   /api/compare → /compare
+ *   etc.
  *
- * In development, Vite proxies /api → http://localhost:5000
- * In production, set VITE_API_URL to your deployed Express server URL
+ * Express (port 5000) is optional — only needed for MongoDB persistence.
+ * When Express is running, analysis results are saved to MongoDB.
+ * When Express is not running, analysis still works via FastAPI directly.
  */
 
 import axios from "axios";
@@ -52,7 +53,7 @@ export const runAnalysis = async ({
   startDate = "2022-01-01",
   endDate = "2024-12-31",
 }) => {
-  const response = await apiClient.post("/analysis", {
+  const response = await apiClient.post("/analyze", {
     ticker: ticker.toUpperCase(),
     query,
     start_date: startDate,

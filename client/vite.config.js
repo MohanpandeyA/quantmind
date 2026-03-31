@@ -6,34 +6,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Analysis history → Express (saves to MongoDB)
-      "/api/analysis": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-      },
-      // All new features → FastAPI directly (no MongoDB needed)
-      "/api/portfolio": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-      "/api/compare": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-      "/api/optimize": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-      "/api/earnings": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-      // Health check → FastAPI
-      "/api/health": {
+      // Route ALL /api/* directly to FastAPI (port 8000)
+      // This works without Express running.
+      // Express (port 5000) is optional — only needed for MongoDB persistence.
+      "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
