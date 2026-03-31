@@ -35,6 +35,8 @@ from api.routes.analysis import router as analysis_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.compare import router as compare_router
 from api.routes.optimize import router as optimize_router
+from api.routes.alerts import router as alerts_router
+from api.routes.earnings import router as earnings_router
 from api.schemas import HealthResponse
 from config.logging_config import get_logger, setup_logging, stop_logging
 from config.settings import settings
@@ -147,6 +149,8 @@ app.include_router(analysis_router)
 app.include_router(portfolio_router)
 app.include_router(compare_router)
 app.include_router(optimize_router)
+app.include_router(alerts_router)
+app.include_router(earnings_router)
 
 
 # --- Health check endpoint ---

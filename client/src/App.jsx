@@ -1,11 +1,13 @@
 /**
- * QuantMind Dashboard — main React application with tabbed navigation.
+ * QuantMind Dashboard — main React application with 6-tab navigation.
  *
  * Tabs:
- *   1. Analyze    — single stock analysis (original feature)
+ *   1. Analyze    — single stock AI analysis (original feature)
  *   2. Portfolio  — real-time P&L tracker (HV Feature 1)
  *   3. Compare    — rank multiple tickers (HV Feature 2)
  *   4. Optimize   — find best strategy params (HV Feature 3)
+ *   5. Alerts     — WebSocket price alerts (HV Feature 4)
+ *   6. Earnings   — upcoming earnings calendar (HV Feature 5)
  */
 
 import { useState } from "react";
@@ -18,12 +20,16 @@ import RAGExplainer from "./components/RAGExplainer";
 import PortfolioTracker from "./components/PortfolioTracker";
 import CompareStocks from "./components/CompareStocks";
 import StrategyOptimizer from "./components/StrategyOptimizer";
+import PriceAlerts from "./components/PriceAlerts";
+import EarningsCalendar from "./components/EarningsCalendar";
 
 const TABS = [
-  { id: "analyze", label: "🔍 Analyze", desc: "Single stock AI analysis" },
+  { id: "analyze",   label: "🔍 Analyze",  desc: "Single stock AI analysis" },
   { id: "portfolio", label: "💼 Portfolio", desc: "Real-time P&L tracker" },
-  { id: "compare", label: "📊 Compare", desc: "Rank multiple tickers" },
-  { id: "optimize", label: "⚙️ Optimize", desc: "Find best parameters" },
+  { id: "compare",   label: "📊 Compare",  desc: "Rank multiple tickers" },
+  { id: "optimize",  label: "⚙️ Optimize", desc: "Find best parameters" },
+  { id: "alerts",    label: "🔔 Alerts",   desc: "WebSocket price alerts" },
+  { id: "earnings",  label: "📅 Earnings", desc: "Upcoming earnings calendar" },
 ];
 
 const App = () => {
@@ -54,12 +60,12 @@ const App = () => {
         </div>
 
         {/* Tab navigation */}
-        <div className="max-w-7xl mx-auto px-4 flex gap-1 pb-0">
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 pb-0 overflow-x-auto">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${
                 activeTab === tab.id
                   ? "bg-gray-950 text-white border-t border-l border-r border-gray-800"
                   : "text-gray-500 hover:text-gray-300"
@@ -77,10 +83,8 @@ const App = () => {
         {/* ===== TAB 1: ANALYZE ===== */}
         {activeTab === "analyze" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Search */}
             <div className="lg:col-span-1 space-y-6">
               <TickerSearch onAnalyze={analyze} loading={loading} />
-
               {!result && !loading && (
                 <div className="card">
                   <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">How It Works</h3>
@@ -106,7 +110,6 @@ const App = () => {
               )}
             </div>
 
-            {/* Right: Results */}
             <div className="lg:col-span-2 space-y-6">
               {error && (
                 <div className="card border border-red-800 bg-red-900/20">
@@ -115,13 +118,6 @@ const App = () => {
                     <div>
                       <h3 className="text-red-400 font-semibold">Analysis Failed</h3>
                       <p className="text-red-300/80 text-sm mt-1">{error}</p>
-                      {error.includes("not running") && (
-                        <div className="mt-3 bg-gray-900 rounded-lg p-3 text-xs font-mono text-gray-400">
-                          <p className="text-gray-300 mb-1">Start the backend:</p>
-                          <p>cd quantmind/backend</p>
-                          <p>uvicorn api.main:app --port 8000</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -145,11 +141,6 @@ const App = () => {
                   <BacktestChart equityCurve={result.equity_curve} startDate={result.backtest_results?.start_date} endDate={result.backtest_results?.end_date} strategyName={result.selected_strategy} />
                   <MetricsTable backtestResults={result.backtest_results} riskMetrics={result.risk_metrics} marketData={result.market_data} />
                   <RAGExplainer explanation={result.final_explanation} citations={result.final_citations} strategyRationale={result.strategy_rationale} selectedStrategy={result.selected_strategy} />
-                  {result.error && (
-                    <div className="card border border-yellow-800/50 bg-yellow-900/10">
-                      <p className="text-yellow-400 text-sm">⚠️ {result.error}</p>
-                    </div>
-                  )}
                 </>
               )}
 
@@ -179,6 +170,13 @@ const App = () => {
 
         {/* ===== TAB 4: OPTIMIZE ===== */}
         {activeTab === "optimize" && <StrategyOptimizer />}
+
+        {/* ===== TAB 5: ALERTS ===== */}
+        {activeTab === "alerts" && <PriceAlerts />}
+
+        {/* ===== TAB 6: EARNINGS ===== */}
+        {activeTab === "earnings" && <EarningsCalendar />}
+
       </main>
 
       {/* Footer */}
