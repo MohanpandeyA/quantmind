@@ -188,6 +188,10 @@ class TradingState(TypedDict, total=False):
     # --- BacktestAgent outputs ---
     backtest_results: BacktestResults
     equity_curve: List[float]
+    # Cached price data — downloaded ONCE, reused across all retries.
+    # Eliminates 3× redundant yfinance downloads when RiskAgent retries.
+    # Stored as list of dicts (JSON-serializable) keyed by "ticker:start:end".
+    cached_price_key: str
 
     # --- RiskAgent outputs ---
     risk_metrics: RiskMetrics

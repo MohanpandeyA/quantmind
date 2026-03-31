@@ -49,6 +49,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     Runs setup on startup and cleanup on shutdown.
     Using lifespan instead of deprecated @app.on_event decorators.
+
+    CRITICAL FIX 3 — PRE-LOAD EMBEDDING MODEL:
+        Problem: sentence-transformers takes 6-8 seconds to load on first use.
+        Without pre-loading, the FIRST user request after server restart
+        waits 6-8 extra seconds while the model loads.
+
+        Fix: Load the model during FastAPI startup (before any requests arrive).
+        Subsequent requests find the model already loaded — instant response.
+
+        This is the 'eager initialization' pattern vs 'lazy initialization'.
+        For ML models that are always needed, eager is better.
     """
     # --- Startup ---
     setup_logging(async_mode=False)  # Sync mode for simplicity in dev
@@ -63,6 +74,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         settings.groq_model,
         bool(settings.groq_api_key),
     )
+
+    # Pre-load embedding model at startup (Critical Fix 3)
+    # Runs in background thread so it doesn't block the startup
+    import asyncio
+    loop = asyncio.get_event_loop()
+    try:
+        logger.info("Pre-loading sentence-transformers embedding model...")
+        from rag.embeddings import EmbeddingModel
+        model = EmbeddingModel()
+        # Load model in thread pool (CPU-bound, ~6-8s)
+        await loop.run_in_executor(None, model._load_model)
+        logger.info(
+            "Embedding model pre-loaded | model=%s | dims=%d",
+            model.model_name, model.dimensions,
+        )
+    except Exception as e:
+        logger.warning("Embedding model pre-load failed (will load on first request): %s", e)
 
     yield  # Application runs here
 

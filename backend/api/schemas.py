@@ -79,6 +79,25 @@ class AnalysisRequest(BaseModel):
             raise ValueError(f"Date must be in YYYY-MM-DD format, got: {v!r}")
         return v
 
+    def model_post_init(self, __context: object) -> None:
+        """Validate that start_date is before end_date.
+
+        WHY: yfinance raises 'Invalid input - start date cannot be after end date'
+        if start_date >= end_date. Catching this at the API boundary gives a
+        clear error message instead of a cryptic yfinance error.
+        """
+        try:
+            start = date.fromisoformat(self.start_date)
+            end = date.fromisoformat(self.end_date)
+            if start >= end:
+                raise ValueError(
+                    f"start_date ({self.start_date}) must be before "
+                    f"end_date ({self.end_date})."
+                )
+        except ValueError as e:
+            if "must be before" in str(e):
+                raise
+
     @field_validator("query")
     @classmethod
     def query_not_empty(cls, v: str) -> str:
