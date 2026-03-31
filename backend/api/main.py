@@ -35,6 +35,10 @@ from api.routes.analysis import router as analysis_router
 from api.schemas import HealthResponse
 from config.logging_config import get_logger, setup_logging, stop_logging
 from config.settings import settings
+from engine.ssl_fix import apply_ssl_fix
+
+# Apply SSL fix immediately at import time (before any yfinance usage)
+apply_ssl_fix()
 
 logger = get_logger(__name__)
 

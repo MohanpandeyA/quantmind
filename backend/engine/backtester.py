@@ -1,5 +1,7 @@
 """Core backtesting engine for QuantMind.
 
+SSL fix for macOS LibreSSL — applied at module load time.
+
 The Backtester takes a strategy and OHLCV price data, simulates trading
 by following the strategy's signals, and produces a BacktestResult with
 a full equity curve, returns series, and trade log.
@@ -129,8 +131,14 @@ class Backtester:
             )
 
         # Normalize column names to lowercase
+        # yfinance 1.x returns MultiIndex columns like ('Close', 'AAPL')
+        # Flatten to simple lowercase strings
         df = raw.copy()
-        df.columns = [c.lower() for c in df.columns]
+        if hasattr(df.columns, "levels"):
+            # MultiIndex: take the first level (metric name), lowercase it
+            df.columns = [c[0].lower() if isinstance(c, tuple) else c.lower() for c in df.columns]
+        else:
+            df.columns = [c[0].lower() if isinstance(c, tuple) else c.lower() for c in df.columns]
 
         # Ensure required columns exist
         required = {"open", "high", "low", "close", "volume"}
@@ -315,9 +323,13 @@ class Backtester:
             # Execute signal at NEXT bar's open (i+1), if available
             exec_idx = i + 1
             if exec_idx >= n:
-                # Last bar — mark to market at close
-                if position != 0:
-                    equity_curve[i] = capital + shares * (closes[i] - entry_price)
+                # Last bar — mark to market at close price
+                if position == 1:
+                    # Long position: value = cash + shares * current_price
+                    equity_curve[i] = capital + shares * closes[i]
+                elif position == -1:
+                    # Short position: value = cash + (entry - current) * shares
+                    equity_curve[i] = capital + shares * (entry_price - closes[i])
                 else:
                     equity_curve[i] = capital
                 break
