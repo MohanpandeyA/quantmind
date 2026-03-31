@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # --- Free Tier ---
     groq_api_key: str = Field(default="", description="Groq API key")
     groq_model: str = Field(
-        default="llama-3.1-70b-versatile", description="Groq model name"
+        default="llama-3.3-70b-versatile", description="Groq model name"
     )
     news_api_key: str = Field(default="", description="NewsAPI key")
     mongodb_uri: str = Field(
