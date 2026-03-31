@@ -58,11 +58,22 @@ const useAnalysis = () => {
       const data = await runAnalysis({ ticker, query, startDate, endDate });
       setResult(data);
     } catch (err) {
-      const message =
-        err.response?.data?.error ||
-        err.response?.data?.detail ||
-        err.message ||
-        "Analysis failed. Please try again.";
+      // Handle Pydantic 422 validation errors (array of error objects)
+      const detail = err.response?.data?.detail;
+      let message;
+
+      if (Array.isArray(detail)) {
+        // Pydantic validation error: [{loc: [...], msg: "...", type: "..."}]
+        message = detail.map((e) => e.msg).join(". ");
+      } else if (typeof detail === "string") {
+        message = detail;
+      } else {
+        message =
+          err.response?.data?.error ||
+          err.message ||
+          "Analysis failed. Please try again.";
+      }
+
       setError(message);
     } finally {
       setLoading(false);
