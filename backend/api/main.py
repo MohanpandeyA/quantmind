@@ -32,6 +32,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.routes.analysis import router as analysis_router
+from api.routes.portfolio import router as portfolio_router
+from api.routes.compare import router as compare_router
+from api.routes.optimize import router as optimize_router
 from api.schemas import HealthResponse
 from config.logging_config import get_logger, setup_logging, stop_logging
 from config.settings import settings
@@ -141,6 +144,9 @@ app.add_middleware(
 
 # --- Register routes ---
 app.include_router(analysis_router)
+app.include_router(portfolio_router)
+app.include_router(compare_router)
+app.include_router(optimize_router)
 
 
 # --- Health check endpoint ---
