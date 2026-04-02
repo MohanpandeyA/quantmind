@@ -5,18 +5,26 @@ This is the THIRD agent in the LangGraph workflow. It analyzes:
 - RAG context (fundamental analysis from SEC/news)
 - Price history (volatility, trend strength)
 
-Then selects either:
-- MomentumStrategy (for trending markets)
-- MeanReversionStrategy (for oscillating/sideways markets)
+Then selects one of four strategies:
+- MomentumStrategy    (EMA crossover — smooth trending markets)
+- MACDStrategy        (triple EMA — strong trending markets with momentum)
+- RSIStrategy         (overbought/oversold — oscillating markets)
+- MeanReversionStrategy (Z-score bands — high-volatility oscillating markets)
 
-And determines optimal hyperparameters for the selected strategy.
-
-Selection logic:
+Selection logic (4-way decision tree):
     1. Compute trend strength: |price_change_pct| and 20-day SMA slope
     2. Compute volatility: rolling std of returns
-    3. If trend_strength > threshold AND volatility < threshold → Momentum
-    4. Else → MeanReversion
-    5. Adjust hyperparameters based on volatility regime
+    3. Count bullish/bearish signals from RAG context
+
+    TRENDING (trend_strength > 5% OR sma_slope > 0.001):
+        Strong trend + bullish fundamentals → MACD  (momentum confirmation)
+        Moderate trend                      → Momentum (EMA crossover)
+
+    OSCILLATING (no clear trend):
+        High volatility (> 2.5%)            → MeanReversion (Z-score bands)
+        Low/medium volatility               → RSI (overbought/oversold)
+
+    ON RETRY: cycles through all 4 strategies in order
 
 LangGraph node contract:
     Input:  TradingState with market_data, price_history, rag_context
@@ -36,6 +44,11 @@ logger = get_logger(__name__)
 TREND_STRENGTH_THRESHOLD = 5.0   # % price change to consider trending
 VOLATILITY_THRESHOLD = 0.025     # Daily std > 2.5% = high volatility
 SMA_SLOPE_THRESHOLD = 0.001      # Normalized SMA slope for trend detection
+STRONG_TREND_THRESHOLD = 8.0     # % price change for MACD (stronger signal needed)
+BULLISH_SIGNAL_THRESHOLD = 2     # Min bullish RAG signals to prefer MACD over Momentum
+
+# Retry cycle: on each retry, rotate through all 4 strategies
+_RETRY_CYCLE = ["momentum", "mean_reversion", "rsi", "macd"]
 
 
 async def strategy_agent(state: TradingState) -> TradingState:
@@ -105,49 +118,76 @@ async def strategy_agent(state: TradingState) -> TradingState:
             trend_strength, volatility, sma_slope, bullish_signals, bearish_signals,
         )
 
-        # On retry, switch strategy
+        # On retry, rotate through all 4 strategies in a fixed cycle
         if retry_count > 0:
+            # Cycle index: retry 1→index 1, retry 2→index 2, retry 3→index 3
+            cycle_idx = retry_count % len(_RETRY_CYCLE)
+            next_strategy = _RETRY_CYCLE[cycle_idx]
             current = state.get("selected_strategy", "momentum")
-            if current == "momentum":
-                rationale = (
-                    f"Retry {retry_count}: Switching from Momentum to MeanReversion "
-                    f"after risk rejection. Volatility={volatility:.3f}."
-                )
-                return _select_mean_reversion(state, rationale, volatility)
-            else:
-                rationale = (
-                    f"Retry {retry_count}: Switching from MeanReversion to Momentum "
-                    f"after risk rejection. Trend strength={trend_strength:.1f}%."
-                )
+            rationale = (
+                f"Retry {retry_count}: Switching from {current} to {next_strategy} "
+                f"after risk rejection. "
+                f"Trend={trend_strength:.1f}% | Volatility={volatility:.3f}."
+            )
+            if next_strategy == "momentum":
                 return _select_momentum(state, rationale)
+            elif next_strategy == "mean_reversion":
+                return _select_mean_reversion(state, rationale, volatility)
+            elif next_strategy == "rsi":
+                return _select_rsi(state, rationale)
+            else:
+                return _select_macd(state, rationale)
 
-        # Primary selection logic
+        # Primary selection logic (4-way decision tree)
         is_trending = (
             trend_strength > TREND_STRENGTH_THRESHOLD
             or abs(sma_slope) > SMA_SLOPE_THRESHOLD
         )
+        is_strong_trend = trend_strength > STRONG_TREND_THRESHOLD
         is_high_volatility = volatility > VOLATILITY_THRESHOLD
 
         if is_trending and not is_high_volatility:
-            rationale = (
-                f"Market is trending: {trend_strength:.1f}% price change, "
-                f"SMA slope={sma_slope:.4f}. "
-                f"Volatility={volatility:.3f} (low). "
-                f"Momentum strategy selected."
-            )
-            if bullish_signals > bearish_signals:
-                rationale += f" Fundamentals bullish ({bullish_signals} positive signals)."
-            return _select_momentum(state, rationale)
+            # Trending market — choose between MACD and Momentum
+            if is_strong_trend and bullish_signals >= BULLISH_SIGNAL_THRESHOLD:
+                # Strong trend + bullish fundamentals → MACD (momentum confirmation)
+                rationale = (
+                    f"Strong trend detected: {trend_strength:.1f}% price change, "
+                    f"SMA slope={sma_slope:.4f}. Volatility={volatility:.3f} (low). "
+                    f"Bullish fundamentals ({bullish_signals} signals). "
+                    f"MACD selected for momentum confirmation."
+                )
+                return _select_macd(state, rationale)
+            else:
+                # Moderate trend → Momentum (EMA crossover, simpler)
+                rationale = (
+                    f"Market is trending: {trend_strength:.1f}% price change, "
+                    f"SMA slope={sma_slope:.4f}. Volatility={volatility:.3f} (low). "
+                    f"Momentum strategy selected."
+                )
+                if bullish_signals > bearish_signals:
+                    rationale += f" Fundamentals bullish ({bullish_signals} positive signals)."
+                return _select_momentum(state, rationale)
 
         else:
-            rationale = (
-                f"Market is oscillating: trend_strength={trend_strength:.1f}%, "
-                f"volatility={volatility:.3f}. "
-                f"MeanReversion strategy selected."
-            )
-            if bearish_signals > bullish_signals:
-                rationale += f" Fundamentals bearish ({bearish_signals} negative signals)."
-            return _select_mean_reversion(state, rationale, volatility)
+            # Oscillating market — choose between RSI and MeanReversion
+            if is_high_volatility:
+                # High volatility → MeanReversion (Z-score bands handle wide swings)
+                rationale = (
+                    f"Market is oscillating with HIGH volatility: "
+                    f"trend_strength={trend_strength:.1f}%, volatility={volatility:.3f}. "
+                    f"MeanReversion (Z-score) selected for volatile oscillation."
+                )
+                if bearish_signals > bullish_signals:
+                    rationale += f" Fundamentals bearish ({bearish_signals} negative signals)."
+                return _select_mean_reversion(state, rationale, volatility)
+            else:
+                # Low/medium volatility oscillation → RSI (cleaner overbought/oversold)
+                rationale = (
+                    f"Market is oscillating with low volatility: "
+                    f"trend_strength={trend_strength:.1f}%, volatility={volatility:.3f}. "
+                    f"RSI selected for overbought/oversold detection."
+                )
+                return _select_rsi(state, rationale)
 
     except Exception as e:
         logger.error("StrategyAgent | failed | ticker=%s | %s", ticker, e, exc_info=True)
@@ -158,6 +198,52 @@ async def strategy_agent(state: TradingState) -> TradingState:
             "strategy_rationale": f"Defaulted to momentum due to error: {e}",
             "error": f"StrategyAgent failed: {e}",
         }
+
+
+def _select_rsi(state: TradingState, rationale: str) -> TradingState:
+    """Return state with RSIStrategy selected.
+
+    Args:
+        state: Current state.
+        rationale: Human-readable selection reason.
+
+    Returns:
+        Updated state with RSI strategy (period=14, oversold=30, overbought=70).
+    """
+    logger.info("StrategyAgent | selected=rsi | %s", rationale[:80])
+    return {
+        **state,
+        "selected_strategy": "rsi",
+        "strategy_params": {
+            "period": 14,
+            "oversold": 30,
+            "overbought": 70,
+        },
+        "strategy_rationale": rationale,
+    }
+
+
+def _select_macd(state: TradingState, rationale: str) -> TradingState:
+    """Return state with MACDStrategy selected.
+
+    Args:
+        state: Current state.
+        rationale: Human-readable selection reason.
+
+    Returns:
+        Updated state with MACD strategy (12/26/9 — Appel's original values).
+    """
+    logger.info("StrategyAgent | selected=macd | %s", rationale[:80])
+    return {
+        **state,
+        "selected_strategy": "macd",
+        "strategy_params": {
+            "fast": 12,
+            "slow": 26,
+            "signal_period": 9,
+        },
+        "strategy_rationale": rationale,
+    }
 
 
 def _select_momentum(state: TradingState, rationale: str) -> TradingState:

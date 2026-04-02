@@ -40,8 +40,10 @@ import pandas as pd
 from config.logging_config import get_logger
 from engine.backtester import Backtester, BacktestConfig
 from engine.strategies.base_strategy import StrategyConfig
+from engine.strategies.macd_strategy import MACDStrategy
 from engine.strategies.mean_reversion import MeanReversionStrategy
 from engine.strategies.momentum import MomentumStrategy
+from engine.strategies.rsi_strategy import RSIStrategy
 from graph.state import BacktestResults, TradingState
 
 logger = get_logger(__name__)
@@ -132,6 +134,10 @@ async def backtest_agent(state: TradingState) -> TradingState:
             strategy = MomentumStrategy(strategy_config)
         elif selected_strategy == "mean_reversion":
             strategy = MeanReversionStrategy(strategy_config)
+        elif selected_strategy == "rsi":
+            strategy = RSIStrategy(strategy_config)
+        elif selected_strategy == "macd":
+            strategy = MACDStrategy(strategy_config)
         else:
             logger.warning(
                 "BacktestAgent | unknown strategy '%s' — defaulting to momentum",
