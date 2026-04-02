@@ -110,3 +110,27 @@ export const checkHealth = async () => {
   });
   return response.data;
 };
+
+// ---------------------------------------------------------------------------
+// Ticker Search API
+// ---------------------------------------------------------------------------
+
+/**
+ * Search for ticker symbols by company name or partial symbol.
+ * Proxied through FastAPI to avoid CORS issues with Yahoo Finance.
+ *
+ * @param {string} query - Search query (e.g., "reliance", "apple", "AAPL")
+ * @returns {Promise<{results: TickerResult[]}>}
+ *
+ * @example
+ * const { results } = await searchTicker("reliance");
+ * // results[0] = { symbol: "RELIANCE.NS", name: "Reliance Industries Limited", exchange: "NSI", type: "EQUITY" }
+ */
+export const searchTicker = async (query) => {
+  if (!query || query.trim().length < 1) return { results: [] };
+  const response = await apiClient.get("/ticker/search", {
+    params: { q: query.trim() },
+    timeout: 6000,
+  });
+  return response.data;
+};
