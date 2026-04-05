@@ -14,6 +14,9 @@ Returns a complete trading analysis with:
 
 from __future__ import annotations
 
+import math
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -24,6 +27,30 @@ from graph.workflow import run_analysis
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/analyze", tags=["Analysis"])
+
+
+def _sanitize_floats(obj: Any) -> Any:
+    """Recursively replace inf/nan floats with None for JSON compliance.
+
+    Python's json module raises ValueError for float('inf') and float('nan').
+    This happens when metrics like profit_factor = inf (no losing trades)
+    or sortino_ratio = nan (no downside deviation).
+
+    Args:
+        obj: Any Python object (dict, list, float, etc.)
+
+    Returns:
+        Same structure with inf/nan replaced by None.
+    """
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: _sanitize_floats(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_floats(v) for v in obj]
+    return obj
 
 
 @router.post(
@@ -101,7 +128,7 @@ async def analyze(request: AnalysisRequest) -> AnalysisResponse:
                 detail=error,
             )
 
-        # Build and return response
+        # Build response
         response = AnalysisResponse.from_trading_state(final_state)
 
         logger.info(
@@ -111,7 +138,10 @@ async def analyze(request: AnalysisRequest) -> AnalysisResponse:
             response.processing_time_ms,
         )
 
-        return response
+        # Sanitize inf/nan floats before JSON serialization
+        # (can occur in profit_factor, sortino_ratio when trades are few)
+        response_dict = _sanitize_floats(response.model_dump())
+        return JSONResponse(content=response_dict)
 
     except HTTPException:
         raise
