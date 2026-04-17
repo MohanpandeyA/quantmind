@@ -92,8 +92,10 @@ const StrategyOptimizer = () => {
                 className="input-field"
                 disabled={loading}
               >
-                <option value="momentum">Momentum (MA Crossover)</option>
-                <option value="mean_reversion">Mean Reversion (Bollinger)</option>
+                <option value="momentum">Momentum (EMA Crossover)</option>
+                <option value="mean_reversion">Mean Reversion (Z-Score)</option>
+                <option value="rsi">RSI (Overbought/Oversold)</option>
+                <option value="macd">MACD (Triple EMA)</option>
               </select>
             </div>
             <div>

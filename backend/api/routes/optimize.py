@@ -49,8 +49,10 @@ from pydantic import BaseModel, Field, field_validator
 from config.logging_config import get_logger
 from engine.backtester import Backtester, BacktestConfig
 from engine.strategies.base_strategy import StrategyConfig
+from engine.strategies.macd_strategy import MACDStrategy
 from engine.strategies.mean_reversion import MeanReversionStrategy
 from engine.strategies.momentum import MomentumStrategy
+from engine.strategies.rsi_strategy import RSIStrategy
 
 logger = get_logger(__name__)
 
@@ -65,6 +67,18 @@ MOMENTUM_GRID = {
 MEAN_REVERSION_GRID = {
     "window": [10, 20, 30],
     "z_threshold": [1.0, 1.5, 2.0, 2.5],
+}
+
+RSI_GRID = {
+    "period": [7, 14, 21],
+    "oversold": [25, 30, 35],
+    "overbought": [65, 70, 75],
+}
+
+MACD_GRID = {
+    "fast": [8, 12, 16],
+    "slow": [21, 26, 30],
+    "signal_period": [7, 9, 12],
 }
 
 
@@ -103,8 +117,8 @@ class OptimizeRequest(BaseModel):
     @field_validator("strategy")
     @classmethod
     def validate_strategy(cls, v: str) -> str:
-        if v not in ("momentum", "mean_reversion"):
-            raise ValueError("strategy must be 'momentum' or 'mean_reversion'")
+        if v not in ("momentum", "mean_reversion", "rsi", "macd"):
+            raise ValueError("strategy must be 'momentum', 'mean_reversion', 'rsi', or 'macd'")
         return v
 
     @field_validator("optimize_for")
@@ -265,7 +279,13 @@ def _run_grid_search(
     Returns:
         List of ParamResult for each parameter combination.
     """
-    grid = MOMENTUM_GRID if strategy_name == "momentum" else MEAN_REVERSION_GRID
+    grid = {
+        "momentum": MOMENTUM_GRID,
+        "mean_reversion": MEAN_REVERSION_GRID,
+        "rsi": RSI_GRID,
+        "macd": MACD_GRID,
+    }.get(strategy_name, MOMENTUM_GRID)
+
     results: List[ParamResult] = []
 
     # Generate all parameter combinations
@@ -273,17 +293,29 @@ def _run_grid_search(
 
     for params in param_combinations:
         try:
-            # Skip invalid combinations (short >= long for momentum)
+            # Skip invalid combinations
             if strategy_name == "momentum":
                 if params.get("short_window", 0) >= params.get("long_window", 0):
+                    continue
+            if strategy_name == "macd":
+                if params.get("fast", 0) >= params.get("slow", 0):
+                    continue
+            if strategy_name == "rsi":
+                if params.get("oversold", 0) >= params.get("overbought", 100):
                     continue
 
             config = StrategyConfig(params=params)
 
             if strategy_name == "momentum":
                 strategy = MomentumStrategy(config)
-            else:
+            elif strategy_name == "mean_reversion":
                 strategy = MeanReversionStrategy(config)
+            elif strategy_name == "rsi":
+                strategy = RSIStrategy(config)
+            elif strategy_name == "macd":
+                strategy = MACDStrategy(config)
+            else:
+                strategy = MomentumStrategy(config)
 
             bt_config = BacktestConfig(
                 ticker=ticker,
