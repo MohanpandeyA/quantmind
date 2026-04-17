@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import TickerAutocomplete from "./TickerAutocomplete";
 
 const WS_URL = "ws://localhost:8000/alerts/ws";
 
@@ -179,12 +180,13 @@ const PriceAlerts = () => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Ticker</label>
-              <input
+              <TickerAutocomplete
                 value={newAlert.ticker}
-                onChange={(e) => setNewAlert({ ...newAlert, ticker: e.target.value.toUpperCase() })}
-                placeholder="AAPL"
-                className="input-field"
+                onChange={(val) => setNewAlert({ ...newAlert, ticker: val.toUpperCase() })}
+                onSelect={({ symbol }) => setNewAlert({ ...newAlert, ticker: symbol })}
+                placeholder="AAPL, RELIANCE.NS..."
                 disabled={status !== "connected"}
+                showHint={false}
               />
             </div>
             <div>

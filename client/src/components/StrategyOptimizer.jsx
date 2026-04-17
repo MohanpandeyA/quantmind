@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import axios from "axios";
+import TickerAutocomplete from "./TickerAutocomplete";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -74,11 +75,13 @@ const StrategyOptimizer = () => {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Ticker</label>
-              <input
+              <TickerAutocomplete
                 value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                className="input-field"
+                onChange={(val) => setTicker(val.toUpperCase())}
+                onSelect={({ symbol }) => setTicker(symbol)}
+                placeholder="AAPL, RELIANCE.NS..."
                 disabled={loading}
+                showHint={false}
               />
             </div>
             <div>

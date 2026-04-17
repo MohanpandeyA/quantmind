@@ -22,6 +22,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import TickerAutocomplete from "./TickerAutocomplete";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -97,11 +98,13 @@ const EarningsCalendar = () => {
       <div className="card">
         <h3 className="text-sm font-semibold text-gray-400 mb-3">Check Specific Ticker</h3>
         <form onSubmit={checkSingleTicker} className="flex gap-3">
-          <input
+          <TickerAutocomplete
             value={singleTicker}
-            onChange={(e) => setSingleTicker(e.target.value.toUpperCase())}
-            placeholder="AAPL"
-            className="input-field flex-1"
+            onChange={(val) => setSingleTicker(val.toUpperCase())}
+            onSelect={({ symbol }) => setSingleTicker(symbol)}
+            placeholder="AAPL, RELIANCE.NS..."
+            showHint={false}
+            className="flex-1"
           />
           <button type="submit" disabled={singleLoading || !singleTicker} className="btn-primary px-6">
             {singleLoading ? "..." : "Check"}

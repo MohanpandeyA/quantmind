@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import TickerAutocomplete from "./TickerAutocomplete";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -115,12 +116,12 @@ const PortfolioTracker = () => {
         <div className="card border border-blue-800/50">
           <h3 className="text-sm font-semibold text-blue-400 mb-3">Add New Position</h3>
           <form onSubmit={addPosition} className="grid grid-cols-2 gap-3">
-            <input
-              placeholder="Ticker (e.g. AAPL)"
+            <TickerAutocomplete
               value={newPosition.ticker}
-              onChange={(e) => setNewPosition({ ...newPosition, ticker: e.target.value.toUpperCase() })}
-              className="input-field text-sm"
-              required
+              onChange={(val) => setNewPosition({ ...newPosition, ticker: val.toUpperCase() })}
+              onSelect={({ symbol }) => setNewPosition({ ...newPosition, ticker: symbol })}
+              placeholder="Ticker (e.g. AAPL, RELIANCE.NS)"
+              showHint={false}
             />
             <input
               type="number"

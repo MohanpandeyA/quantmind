@@ -12,6 +12,7 @@
 
 import { useState } from "react";
 import axios from "axios";
+import TickerAutocomplete from "./TickerAutocomplete";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -23,12 +24,21 @@ const SIGNAL_COLORS = {
 
 const CompareStocks = () => {
   const [tickers, setTickers] = useState("AAPL,MSFT,NVDA,GOOGL,JPM");
+  const [addTicker, setAddTicker] = useState("");
   const [query, setQuery] = useState("Which is the best investment right now?");
   const [startDate, setStartDate] = useState("2022-01-01");
   const [endDate, setEndDate] = useState("2024-12-31");
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const appendTicker = (symbol) => {
+    const list = tickers.split(",").map((t) => t.trim()).filter(Boolean);
+    if (!list.includes(symbol)) {
+      setTickers([...list, symbol].join(","));
+    }
+    setAddTicker("");
+  };
 
   const runComparison = async (e) => {
     e.preventDefault();
@@ -80,6 +90,25 @@ const CompareStocks = () => {
               className="input-field"
               disabled={loading}
             />
+            <div className="flex gap-2 mt-2">
+              <TickerAutocomplete
+                value={addTicker}
+                onChange={setAddTicker}
+                onSelect={({ symbol }) => appendTicker(symbol)}
+                placeholder="Search to add a ticker..."
+                disabled={loading}
+                showHint={false}
+                className="flex-1"
+              />
+              <button
+                type="button"
+                onClick={() => addTicker.trim() && appendTicker(addTicker.trim().toUpperCase())}
+                disabled={!addTicker.trim() || loading}
+                className="text-xs text-blue-400 hover:text-blue-300 bg-blue-900/30 px-3 py-1.5 rounded-lg disabled:opacity-40"
+              >
+                + Add
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Question</label>
