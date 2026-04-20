@@ -22,14 +22,16 @@ import CompareStocks from "./components/CompareStocks";
 import StrategyOptimizer from "./components/StrategyOptimizer";
 import PriceAlerts from "./components/PriceAlerts";
 import EarningsCalendar from "./components/EarningsCalendar";
+import WalkForwardAnalysis from "./components/WalkForwardAnalysis";
 
 const TABS = [
-  { id: "analyze",   label: "🔍 Analyze",  desc: "Single stock AI analysis" },
-  { id: "portfolio", label: "💼 Portfolio", desc: "Real-time P&L tracker" },
-  { id: "compare",   label: "📊 Compare",  desc: "Rank multiple tickers" },
-  { id: "optimize",  label: "⚙️ Optimize", desc: "Find best parameters" },
-  { id: "alerts",    label: "🔔 Alerts",   desc: "WebSocket price alerts" },
-  { id: "earnings",  label: "📅 Earnings", desc: "Upcoming earnings calendar" },
+  { id: "analyze",      label: "🔍 Analyze",   desc: "Single stock AI analysis" },
+  { id: "portfolio",    label: "💼 Portfolio",  desc: "Real-time P&L tracker" },
+  { id: "compare",      label: "📊 Compare",   desc: "Rank multiple tickers" },
+  { id: "optimize",     label: "⚙️ Optimize",  desc: "Find best parameters" },
+  { id: "alerts",       label: "🔔 Alerts",    desc: "WebSocket price alerts" },
+  { id: "earnings",     label: "📅 Earnings",  desc: "Upcoming earnings calendar" },
+  { id: "validate",     label: "🔬 Validate",  desc: "Walk-forward validation" },
 ];
 
 const App = () => {
@@ -185,6 +187,9 @@ const App = () => {
 
         {/* ===== TAB 6: EARNINGS ===== */}
         {activeTab === "earnings" && <EarningsCalendar />}
+
+        {/* ===== TAB 7: VALIDATE ===== */}
+        {activeTab === "validate" && <WalkForwardAnalysis />}
 
       </main>
 
