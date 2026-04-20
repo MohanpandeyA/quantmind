@@ -140,6 +140,9 @@ def _build_prompt(state: TradingState) -> str:
     selected_strategy = state.get("selected_strategy", "momentum")
     backtest = state.get("backtest_results", {})
     risk = state.get("risk_metrics", {})
+    sentiment_score = state.get("sentiment_score", None)
+    sentiment_label = state.get("sentiment_label", None)
+    sentiment_details = state.get("sentiment_details", {})
 
     # Format market data
     price = market_data.get("current_price", 0)
@@ -160,6 +163,24 @@ def _build_prompt(state: TradingState) -> str:
     risk_level = risk.get("risk_level", "UNKNOWN")
     risk_score = risk.get("risk_score", 0)
 
+    # Build optional sentiment section
+    sentiment_section = ""
+    if sentiment_score is not None and sentiment_label is not None:
+        top_pos = sentiment_details.get("top_positive", [])
+        top_neg = sentiment_details.get("top_negative", [])
+        sentiment_section = f"""
+=== SENTIMENT ANALYSIS (FinBERT + Social) ===
+Overall Sentiment: {sentiment_label} (score: {sentiment_score:+.2f})
+"""
+        if top_pos:
+            sentiment_section += "Top positive signals:\n"
+            for item in top_pos[:2]:
+                sentiment_section += f"  [{item['score']:+.2f}] \"{item['text']}\"\n"
+        if top_neg:
+            sentiment_section += "Top negative signals:\n"
+            for item in top_neg[:2]:
+                sentiment_section += f"  [{item['score']:+.2f}] \"{item['text']}\"\n"
+
     prompt = f"""USER QUERY: {query}
 
 TICKER: {ticker}
@@ -170,7 +191,7 @@ Current Price: ${price:.2f} ({change:+.2f}% today)
 
 === FUNDAMENTAL ANALYSIS (from SEC filings & news) ===
 {rag_context}
-
+{sentiment_section}
 === STRATEGY SELECTION ===
 Selected Strategy: {selected_strategy.upper()}
 Rationale: {strategy_rationale}

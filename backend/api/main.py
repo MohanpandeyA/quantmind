@@ -98,6 +98,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         logger.warning("Embedding model pre-load failed (will load on first request): %s", e)
 
+    # Pre-load FinBERT sentiment model at startup
+    # First load downloads ~440MB from HuggingFace and takes ~30-40s.
+    # Pre-loading ensures the first analysis request is not slow.
+    try:
+        logger.info("Pre-loading FinBERT sentiment model...")
+        from agents.sentiment_agent import _load_finbert
+        await loop.run_in_executor(None, _load_finbert)
+        logger.info("FinBERT sentiment model pre-loaded | model=ProsusAI/finbert")
+    except Exception as e:
+        logger.warning("FinBERT pre-load failed (will load on first sentiment analysis): %s", e)
+
     yield  # Application runs here
 
     # --- Shutdown ---

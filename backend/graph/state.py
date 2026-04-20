@@ -193,6 +193,12 @@ class TradingState(TypedDict, total=False):
     # Stored as list of dicts (JSON-serializable) keyed by "ticker:start:end".
     cached_price_key: str
 
+    # --- SentimentAgent outputs ---
+    sentiment_score: float          # -1.0 (very bearish) to +1.0 (very bullish)
+    sentiment_label: str            # "BULLISH" / "BEARISH" / "NEUTRAL"
+    sentiment_confidence: float     # 0.0 to 1.0
+    sentiment_details: Dict[str, Any]  # top positive/negative sentences
+
     # --- RiskAgent outputs ---
     risk_metrics: RiskMetrics
     risk_approved: bool

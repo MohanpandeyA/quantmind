@@ -190,6 +190,11 @@ class AnalysisResponse(BaseModel):
     backtest_results: Optional[BacktestResultsResponse] = None
     equity_curve: List[float] = Field(default_factory=list)
     risk_metrics: Optional[RiskMetricsResponse] = None
+    # Sentiment analysis (SentimentAgent — 7th LangGraph node)
+    sentiment_score: Optional[float] = None
+    sentiment_label: Optional[str] = None
+    sentiment_confidence: Optional[float] = None
+    sentiment_details: Optional[Dict[str, Any]] = None
     processing_time_ms: float = 0.0
     error: str = ""
 
@@ -227,6 +232,10 @@ class AnalysisResponse(BaseModel):
             backtest_results=backtest_resp,
             equity_curve=state.get("equity_curve", [])[:252],  # Last year
             risk_metrics=risk_resp,
+            sentiment_score=state.get("sentiment_score"),
+            sentiment_label=state.get("sentiment_label"),
+            sentiment_confidence=state.get("sentiment_confidence"),
+            sentiment_details=state.get("sentiment_details"),
             processing_time_ms=state.get("processing_time_ms", 0.0),
             error=state.get("error", ""),
         )

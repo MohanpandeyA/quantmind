@@ -118,9 +118,17 @@ async def strategy_agent(state: TradingState) -> TradingState:
             trend_strength, volatility, sma_slope, bullish_signals, bearish_signals,
         )
 
+        # Read FinBERT sentiment score (from SentimentAgent, default neutral)
+        sentiment_score = state.get("sentiment_score", 0.0)
+        sentiment_label = state.get("sentiment_label", "NEUTRAL")
+
+        logger.debug(
+            "StrategyAgent | sentiment | score=%.3f | label=%s",
+            sentiment_score, sentiment_label,
+        )
+
         # On retry, rotate through all 4 strategies in a fixed cycle
         if retry_count > 0:
-            # Cycle index: retry 1→index 1, retry 2→index 2, retry 3→index 3
             cycle_idx = retry_count % len(_RETRY_CYCLE)
             next_strategy = _RETRY_CYCLE[cycle_idx]
             current = state.get("selected_strategy", "momentum")
@@ -138,7 +146,7 @@ async def strategy_agent(state: TradingState) -> TradingState:
             else:
                 return _select_macd(state, rationale)
 
-        # Primary selection logic (4-way decision tree)
+        # Primary selection logic (4-way decision tree + sentiment overlay)
         is_trending = (
             trend_strength > TREND_STRENGTH_THRESHOLD
             or abs(sma_slope) > SMA_SLOPE_THRESHOLD
@@ -146,45 +154,55 @@ async def strategy_agent(state: TradingState) -> TradingState:
         is_strong_trend = trend_strength > STRONG_TREND_THRESHOLD
         is_high_volatility = volatility > VOLATILITY_THRESHOLD
 
+        # Sentiment boosts: bullish sentiment lowers threshold for MACD,
+        # bearish sentiment pushes toward MeanReversion even in trending markets
+        is_sentiment_bullish = sentiment_score > 0.2
+        is_sentiment_bearish = sentiment_score < -0.2
+
         if is_trending and not is_high_volatility:
             # Trending market — choose between MACD and Momentum
-            if is_strong_trend and bullish_signals >= BULLISH_SIGNAL_THRESHOLD:
-                # Strong trend + bullish fundamentals → MACD (momentum confirmation)
+            if (is_strong_trend or is_sentiment_bullish) and bullish_signals >= BULLISH_SIGNAL_THRESHOLD:
+                # Strong trend OR bullish sentiment + bullish fundamentals → MACD
                 rationale = (
                     f"Strong trend detected: {trend_strength:.1f}% price change, "
                     f"SMA slope={sma_slope:.4f}. Volatility={volatility:.3f} (low). "
-                    f"Bullish fundamentals ({bullish_signals} signals). "
+                    f"Sentiment: {sentiment_label} ({sentiment_score:+.2f}). "
                     f"MACD selected for momentum confirmation."
                 )
                 return _select_macd(state, rationale)
+            elif is_sentiment_bearish and not is_strong_trend:
+                # Mild trend but bearish sentiment → MeanReversion (wait for reversal)
+                rationale = (
+                    f"Mild trend ({trend_strength:.1f}%) but bearish sentiment "
+                    f"({sentiment_label}: {sentiment_score:+.2f}). "
+                    f"MeanReversion selected — sentiment suggests caution."
+                )
+                return _select_mean_reversion(state, rationale, volatility)
             else:
-                # Moderate trend → Momentum (EMA crossover, simpler)
+                # Moderate trend → Momentum (EMA crossover)
                 rationale = (
                     f"Market is trending: {trend_strength:.1f}% price change, "
                     f"SMA slope={sma_slope:.4f}. Volatility={volatility:.3f} (low). "
+                    f"Sentiment: {sentiment_label} ({sentiment_score:+.2f}). "
                     f"Momentum strategy selected."
                 )
-                if bullish_signals > bearish_signals:
-                    rationale += f" Fundamentals bullish ({bullish_signals} positive signals)."
                 return _select_momentum(state, rationale)
 
         else:
             # Oscillating market — choose between RSI and MeanReversion
             if is_high_volatility:
-                # High volatility → MeanReversion (Z-score bands handle wide swings)
                 rationale = (
                     f"Market is oscillating with HIGH volatility: "
                     f"trend_strength={trend_strength:.1f}%, volatility={volatility:.3f}. "
+                    f"Sentiment: {sentiment_label} ({sentiment_score:+.2f}). "
                     f"MeanReversion (Z-score) selected for volatile oscillation."
                 )
-                if bearish_signals > bullish_signals:
-                    rationale += f" Fundamentals bearish ({bearish_signals} negative signals)."
                 return _select_mean_reversion(state, rationale, volatility)
             else:
-                # Low/medium volatility oscillation → RSI (cleaner overbought/oversold)
                 rationale = (
                     f"Market is oscillating with low volatility: "
                     f"trend_strength={trend_strength:.1f}%, volatility={volatility:.3f}. "
+                    f"Sentiment: {sentiment_label} ({sentiment_score:+.2f}). "
                     f"RSI selected for overbought/oversold detection."
                 )
                 return _select_rsi(state, rationale)

@@ -140,7 +140,16 @@ const App = () => {
                   <SignalBadge signal={result.signal} ticker={result.ticker} processingTimeMs={result.processing_time_ms} />
                   <BacktestChart equityCurve={result.equity_curve} startDate={result.backtest_results?.start_date} endDate={result.backtest_results?.end_date} strategyName={result.selected_strategy} />
                   <MetricsTable backtestResults={result.backtest_results} riskMetrics={result.risk_metrics} marketData={result.market_data} />
-                  <RAGExplainer explanation={result.final_explanation} citations={result.final_citations} strategyRationale={result.strategy_rationale} selectedStrategy={result.selected_strategy} />
+                  <RAGExplainer
+                    explanation={result.final_explanation}
+                    citations={result.final_citations}
+                    strategyRationale={result.strategy_rationale}
+                    selectedStrategy={result.selected_strategy}
+                    sentimentScore={result.sentiment_score}
+                    sentimentLabel={result.sentiment_label}
+                    sentimentConfidence={result.sentiment_confidence}
+                    sentimentDetails={result.sentiment_details}
+                  />
                 </>
               )}
 

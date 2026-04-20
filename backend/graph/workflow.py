@@ -68,6 +68,7 @@ def build_workflow() -> Any:
     from agents.rag_agent import rag_agent
     from agents.research_agent import research_agent
     from agents.risk_agent import risk_agent, should_retry
+    from agents.sentiment_agent import sentiment_agent
     from agents.strategy_agent import strategy_agent
 
     # Create the state graph with TradingState as the shared state type
@@ -76,6 +77,7 @@ def build_workflow() -> Any:
     # --- Register all agent nodes ---
     workflow.add_node("research_agent", research_agent)
     workflow.add_node("rag_agent", rag_agent)
+    workflow.add_node("sentiment_agent", sentiment_agent)   # NEW: 7th agent
     workflow.add_node("strategy_agent", strategy_agent)
     workflow.add_node("backtest_agent", backtest_agent)
     workflow.add_node("risk_agent", risk_agent)
@@ -84,7 +86,8 @@ def build_workflow() -> Any:
     # --- Define sequential edges ---
     workflow.set_entry_point("research_agent")
     workflow.add_edge("research_agent", "rag_agent")
-    workflow.add_edge("rag_agent", "strategy_agent")
+    workflow.add_edge("rag_agent", "sentiment_agent")       # NEW: RAG → Sentiment
+    workflow.add_edge("sentiment_agent", "strategy_agent")  # NEW: Sentiment → Strategy
     workflow.add_edge("strategy_agent", "backtest_agent")
     workflow.add_edge("backtest_agent", "risk_agent")
 
@@ -105,7 +108,7 @@ def build_workflow() -> Any:
     # Compile the graph into a runnable
     app = workflow.compile()
 
-    logger.info("LangGraph workflow compiled | nodes=6 | conditional_edges=1")
+    logger.info("LangGraph workflow compiled | nodes=7 | conditional_edges=1")
     return app
 
 

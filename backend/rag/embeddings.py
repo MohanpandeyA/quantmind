@@ -23,6 +23,7 @@ Optimization principles:
 from __future__ import annotations
 
 import asyncio
+import threading
 from typing import List, Optional
 
 import numpy as np
@@ -36,6 +37,13 @@ logger = get_logger(__name__)
 # Default free model
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
 DEFAULT_BATCH_SIZE = 64  # Chunks per embedding batch
+
+# Module-level singleton + lock to prevent race condition when multiple
+# parallel requests (e.g. Compare tab with 5 tickers) each try to load
+# SentenceTransformer simultaneously. torch 2.8.0 raises:
+#   "Cannot copy out of meta tensor" when concurrent .to(device) calls happen.
+_SENTENCE_TRANSFORMER_SINGLETON = None
+_SENTENCE_TRANSFORMER_LOCK = threading.Lock()
 
 
 class EmbeddingModel:
@@ -116,7 +124,14 @@ class EmbeddingModel:
         else:
             try:
                 from sentence_transformers import SentenceTransformer  # type: ignore[import]
-                self._model = SentenceTransformer(self.model_name)
+                global _SENTENCE_TRANSFORMER_SINGLETON
+                # Double-checked locking: fast path (no lock) if already loaded
+                if _SENTENCE_TRANSFORMER_SINGLETON is None:
+                    with _SENTENCE_TRANSFORMER_LOCK:
+                        # Re-check inside lock (another thread may have loaded it)
+                        if _SENTENCE_TRANSFORMER_SINGLETON is None:
+                            _SENTENCE_TRANSFORMER_SINGLETON = SentenceTransformer(self.model_name)
+                self._model = _SENTENCE_TRANSFORMER_SINGLETON
                 logger.info(
                     "EmbeddingModel | sentence-transformers loaded | model=%s",
                     self.model_name,
