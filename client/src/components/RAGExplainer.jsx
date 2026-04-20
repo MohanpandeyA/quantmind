@@ -216,13 +216,58 @@ const RAGExplainer = ({
         </div>
       )}
 
-      {/* Main explanation body */}
-      <div className="prose prose-invert prose-sm max-w-none">
-        {bodyLines.map((line, i) => (
-          <p key={i} className="text-gray-300 leading-relaxed mb-2">
-            {line}
-          </p>
-        ))}
+      {/* Main explanation body — smart formatting */}
+      <div className="space-y-1.5">
+        {bodyLines.map((line, i) => {
+          // Source citations: [1] text, [2] text
+          const citationMatch = line.match(/^\[(\d+)\]\s+(.+)/);
+          if (citationMatch) {
+            return (
+              <div key={i} className="flex gap-2 text-sm mt-2">
+                <span className="text-blue-400 font-mono shrink-0">[{citationMatch[1]}]</span>
+                <span className="text-gray-400">{citationMatch[2]}</span>
+              </div>
+            );
+          }
+
+          // Bullet points: -, •, *, or numbered "1."
+          const bulletMatch = line.match(/^[-•*]\s+(.+)/) || line.match(/^\d+\.\s+(.+)/);
+          if (bulletMatch) {
+            return (
+              <div key={i} className="flex gap-2 text-gray-300 leading-relaxed">
+                <span className="text-blue-400 shrink-0 mt-0.5 select-none">•</span>
+                <span>{bulletMatch[1]}</span>
+              </div>
+            );
+          }
+
+          // Key-value pairs: "Key Risk: something" or "Strategy: MACD"
+          const kvMatch = line.match(/^([A-Z][^:]{2,35}):\s+(.+)/);
+          if (kvMatch) {
+            return (
+              <div key={i} className="flex gap-2 text-sm">
+                <span className="text-gray-500 shrink-0 font-medium min-w-fit">{kvMatch[1]}:</span>
+                <span className="text-gray-300">{kvMatch[2]}</span>
+              </div>
+            );
+          }
+
+          // Short lines that look like section headers
+          if (line.length < 55 && (line.endsWith(":") || line === line.toUpperCase())) {
+            return (
+              <p key={i} className="text-gray-400 font-semibold text-xs uppercase tracking-wider pt-2 pb-0.5">
+                {line.replace(/:$/, "")}
+              </p>
+            );
+          }
+
+          // Default: regular paragraph
+          return (
+            <p key={i} className="text-gray-300 leading-relaxed">
+              {line}
+            </p>
+          );
+        })}
       </div>
 
       {/* Strategy rationale (collapsible) */}
