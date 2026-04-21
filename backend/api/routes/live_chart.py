@@ -62,7 +62,23 @@ router = APIRouter(prefix="/live-chart", tags=["Live Chart"])
 PUSH_INTERVAL_SECONDS = 5
 
 # How many historical candles to send on connect
-HISTORY_CANDLES = 60
+HISTORY_CANDLES = 100
+
+# Valid period/interval combinations (yfinance constraints)
+# period → max interval granularity
+VALID_COMBOS: dict[str, list[str]] = {
+    "1d":  ["1m", "2m", "5m", "15m", "30m", "60m"],
+    "5d":  ["1m", "2m", "5m", "15m", "30m", "60m"],
+    "1mo": ["5m", "15m", "30m", "60m", "1d"],
+    "3mo": ["15m", "30m", "60m", "1d"],
+    "6mo": ["1d", "1wk"],
+    "1y":  ["1d", "1wk"],
+    "2y":  ["1d", "1wk"],
+    "5y":  ["1d", "1wk", "1mo"],
+}
+
+DEFAULT_PERIOD   = "1d"
+DEFAULT_INTERVAL = "1m"
 
 
 # ---------------------------------------------------------------------------
@@ -157,26 +173,47 @@ def _sanitize(candles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 @router.websocket("/ws/{ticker}")
-async def live_chart_ws(websocket: WebSocket, ticker: str) -> None:
+async def live_chart_ws(
+    websocket: WebSocket,
+    ticker: str,
+    period: str = DEFAULT_PERIOD,
+    interval: str = DEFAULT_INTERVAL,
+) -> None:
     """Stream real-time OHLCV candlestick data for a ticker.
+
+    Query params:
+        period:   Data range — '1d' (default), '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y'
+        interval: Bar size  — '1m' (default), '5m', '15m', '30m', '60m', '1d', '1wk'
 
     Protocol:
         1. Accept connection
-        2. Validate ticker (basic check)
-        3. Send history payload (last 60 candles)
+        2. Validate ticker + period/interval combo
+        3. Send history payload (last HISTORY_CANDLES candles)
         4. Loop every PUSH_INTERVAL_SECONDS:
-           - Fetch latest candle
+           - Fetch latest candle (only for intraday intervals)
            - Push update
         5. On disconnect: break loop
 
     Args:
         websocket: FastAPI WebSocket connection.
-        ticker: Stock ticker symbol from URL path (e.g., 'AAPL').
+        ticker:   Stock ticker symbol from URL path (e.g., 'AAPL').
+        period:   yfinance period string (query param).
+        interval: yfinance interval string (query param).
     """
     ticker = ticker.upper().strip()
     await websocket.accept()
 
-    logger.info("live_chart | connected | ticker=%s", ticker)
+    # --- Validate period/interval ---
+    if period not in VALID_COMBOS:
+        period = DEFAULT_PERIOD
+    valid_intervals = VALID_COMBOS[period]
+    if interval not in valid_intervals:
+        interval = valid_intervals[0]  # fallback to finest valid interval
+
+    logger.info(
+        "live_chart | connected | ticker=%s | period=%s | interval=%s",
+        ticker, period, interval,
+    )
 
     # Basic ticker validation
     if not ticker or len(ticker) > 12 or not ticker.replace(".", "").replace("-", "").isalnum():
@@ -187,11 +224,14 @@ async def live_chart_ws(websocket: WebSocket, ticker: str) -> None:
         await websocket.close()
         return
 
+    # Intraday intervals get live updates; daily/weekly are static snapshots
+    is_intraday = interval in ("1m", "2m", "5m", "15m", "30m", "60m")
+
     try:
         # --- Step 1: Send historical candles immediately on connect ---
         loop = asyncio.get_event_loop()
         history = await loop.run_in_executor(
-            None, lambda: _fetch_candles(ticker, period="1d", interval="1m")
+            None, lambda: _fetch_candles(ticker, period=period, interval=interval)
         )
         history = _sanitize(history)
 
@@ -199,27 +239,32 @@ async def live_chart_ws(websocket: WebSocket, ticker: str) -> None:
         history = history[-HISTORY_CANDLES:]
 
         await websocket.send_json({
-            "type":    "history",
-            "ticker":  ticker,
-            "candles": history,
-            "count":   len(history),
+            "type":     "history",
+            "ticker":   ticker,
+            "period":   period,
+            "interval": interval,
+            "candles":  history,
+            "count":    len(history),
         })
 
         logger.info(
-            "live_chart | history sent | ticker=%s | candles=%d",
-            ticker, len(history),
+            "live_chart | history sent | ticker=%s | period=%s | interval=%s | candles=%d",
+            ticker, period, interval, len(history),
         )
 
         # Track the last candle timestamp to detect new candles
         last_timestamp: Optional[int] = history[-1]["timestamp"] if history else None
 
         # --- Step 2: Stream live updates every PUSH_INTERVAL_SECONDS ---
-        while True:
-            await asyncio.sleep(PUSH_INTERVAL_SECONDS)
+        # For daily/weekly intervals, push a refresh every 60s (less frequent)
+        push_interval = PUSH_INTERVAL_SECONDS if is_intraday else 60
 
-            # Fetch latest candles (last 5 minutes to catch the current candle)
+        while True:
+            await asyncio.sleep(push_interval)
+
+            # Fetch latest candles
             latest = await loop.run_in_executor(
-                None, lambda: _fetch_candles(ticker, period="1d", interval="1m")
+                None, lambda: _fetch_candles(ticker, period=period, interval=interval)
             )
             latest = _sanitize(latest)
 
@@ -243,6 +288,8 @@ async def live_chart_ws(websocket: WebSocket, ticker: str) -> None:
             await websocket.send_json({
                 "type":          "candle",
                 "ticker":        ticker,
+                "period":        period,
+                "interval":      interval,
                 "time":          newest["time"],
                 "timestamp":     newest["timestamp"],
                 "open":          newest["open"],

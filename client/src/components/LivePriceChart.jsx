@@ -1,22 +1,25 @@
 /**
  * LivePriceChart — Real-time candlestick chart with WebSocket streaming.
  *
- * Architecture:
- *   WebSocket ws://localhost:8000/live-chart/ws/{ticker}
- *     → server pushes OHLCV candle every 5 seconds
- *     → client maintains rolling 60-candle buffer
- *     → Recharts ComposedChart re-renders on each push
+ * Features:
+ *   - Time range selector: Today / 5 Days / 1 Month / 3 Months / 6 Months / 1 Year
+ *   - Interval selector: 1m / 5m / 15m / 30m / 1h / 1D (auto-filtered per range)
+ *   - Custom CandlestickBar SVG shape (Recharts ComposedChart)
+ *   - EMA(20) line overlay computed client-side O(1) incremental
+ *   - Volume bars (green/red matching candle color)
+ *   - Rolling 100-candle buffer via useRef
+ *   - WebSocket lifecycle: connect/disconnect/error/heartbeat
  *
- * Chart layers (ComposedChart):
- *   1. Custom CandlestickBar shape — green (bullish) / red (bearish) rectangles
- *   2. Line — EMA(20) computed client-side using O(1) incremental formula
- *   3. Second ComposedChart below — volume bars (green/red matching candle)
+ * WebSocket URL format:
+ *   ws://localhost:8000/live-chart/ws/{ticker}?period={period}&interval={interval}
  *
- * EMA computed client-side:
- *   alpha = 2 / (span + 1)
- *   ema_t = alpha * close_t + (1 - alpha) * ema_{t-1}
- *   This is the same OnlineEMA algorithm from backend/engine/online_indicators.py
- *   replicated in JS — no need to send EMA from server.
+ * Period → valid intervals (mirrors backend VALID_COMBOS):
+ *   1d  → 1m, 5m, 15m, 30m, 1h
+ *   5d  → 1m, 5m, 15m, 30m, 1h
+ *   1mo → 5m, 15m, 30m, 1h, 1D
+ *   3mo → 15m, 30m, 1h, 1D
+ *   6mo → 1D, 1W
+ *   1y  → 1D, 1W
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -36,20 +39,41 @@ import TickerAutocomplete from "./TickerAutocomplete";
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const WS_BASE = "ws://localhost:8000/live-chart/ws";
-const MAX_CANDLES = 60;
-const EMA_SPAN = 20;
-const EMA_ALPHA = 2 / (EMA_SPAN + 1);
+const WS_BASE    = "ws://localhost:8000/live-chart/ws";
+const MAX_CANDLES = 100;
+const EMA_SPAN   = 20;
+const EMA_ALPHA  = 2 / (EMA_SPAN + 1);
 
 const POPULAR_TICKERS = ["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA", "AMZN", "META", "JPM"];
 
+// Period options with labels and valid intervals
+const PERIOD_OPTIONS = [
+  { value: "1d",  label: "Today",   intervals: ["1m", "5m", "15m", "30m", "60m"] },
+  { value: "5d",  label: "5 Days",  intervals: ["1m", "5m", "15m", "30m", "60m"] },
+  { value: "1mo", label: "1 Month", intervals: ["5m", "15m", "30m", "60m", "1d"] },
+  { value: "3mo", label: "3 Months",intervals: ["15m", "30m", "60m", "1d"] },
+  { value: "6mo", label: "6 Months",intervals: ["1d", "1wk"] },
+  { value: "1y",  label: "1 Year",  intervals: ["1d", "1wk"] },
+];
+
+// Interval display labels
+const INTERVAL_LABELS = {
+  "1m":  "1m",
+  "5m":  "5m",
+  "15m": "15m",
+  "30m": "30m",
+  "60m": "1h",
+  "1d":  "1D",
+  "1wk": "1W",
+};
+
 // ---------------------------------------------------------------------------
-// EMA helper — O(1) incremental update (mirrors OnlineEMA in online_indicators.py)
+// EMA helper — O(1) incremental (mirrors OnlineEMA in online_indicators.py)
 // ---------------------------------------------------------------------------
 function computeEMA(candles) {
   if (!candles.length) return [];
   const emas = new Array(candles.length).fill(null);
-  let ema = candles[0].close; // seed with first close
+  let ema = candles[0].close;
   emas[0] = ema;
   for (let i = 1; i < candles.length; i++) {
     ema = EMA_ALPHA * candles[i].close + (1 - EMA_ALPHA) * ema;
@@ -60,8 +84,6 @@ function computeEMA(candles) {
 
 // ---------------------------------------------------------------------------
 // Custom Candlestick Bar shape for Recharts
-// Recharts has no native candlestick — we render it as a custom Bar shape.
-// Each "bar" is actually a candlestick: body (open→close) + wick (low→high).
 // ---------------------------------------------------------------------------
 const CandlestickBar = (props) => {
   const { x, y, width, height, payload, yAxis } = props;
@@ -69,36 +91,23 @@ const CandlestickBar = (props) => {
 
   const { open, high, low, close } = payload;
   const isBullish = close >= open;
-  const color = isBullish ? "#22c55e" : "#ef4444"; // green / red
-
-  // yAxis.scale maps price → pixel y coordinate
-  const scale = yAxis.scale;
+  const color     = isBullish ? "#22c55e" : "#ef4444";
+  const scale     = yAxis.scale;
   if (!scale) return null;
 
-  const yHigh  = scale(high);
-  const yLow   = scale(low);
-  const yOpen  = scale(open);
-  const yClose = scale(close);
-
+  const yHigh      = scale(high);
+  const yLow       = scale(low);
+  const yOpen      = scale(open);
+  const yClose     = scale(close);
   const bodyTop    = Math.min(yOpen, yClose);
   const bodyBottom = Math.max(yOpen, yClose);
-  const bodyHeight = Math.max(bodyBottom - bodyTop, 1); // min 1px
+  const bodyHeight = Math.max(bodyBottom - bodyTop, 1);
   const centerX    = x + width / 2;
-  const wickWidth  = 1.5;
-  const bodyWidth  = Math.max(width * 0.6, 4);
+  const bodyWidth  = Math.max(width * 0.6, 3);
 
   return (
     <g>
-      {/* Wick — thin vertical line from low to high */}
-      <line
-        x1={centerX}
-        y1={yHigh}
-        x2={centerX}
-        y2={yLow}
-        stroke={color}
-        strokeWidth={wickWidth}
-      />
-      {/* Body — rectangle from open to close */}
+      <line x1={centerX} y1={yHigh} x2={centerX} y2={yLow} stroke={color} strokeWidth={1.5} />
       <rect
         x={centerX - bodyWidth / 2}
         y={bodyTop}
@@ -154,24 +163,27 @@ const CandleTooltip = ({ active, payload }) => {
 const LivePriceChart = () => {
   const [ticker, setTicker]           = useState("AAPL");
   const [inputTicker, setInputTicker] = useState("AAPL");
+  const [period, setPeriod]           = useState("1d");
+  const [interval, setInterval]       = useState("1m");
   const [candles, setCandles]         = useState([]);
-  const [status, setStatus]           = useState("idle"); // idle | connecting | live | closed | error
+  const [status, setStatus]           = useState("idle");
   const [statusMsg, setStatusMsg]     = useState("");
   const [lastCandle, setLastCandle]   = useState(null);
   const [prevClose, setPrevClose]     = useState(null);
 
   const wsRef      = useRef(null);
-  const emaRef     = useRef(null); // running EMA value
-  const candlesRef = useRef([]);   // avoid stale closure in ws.onmessage
+  const emaRef     = useRef(null);
+  const candlesRef = useRef([]);
 
-  // Keep candlesRef in sync
   useEffect(() => { candlesRef.current = candles; }, [candles]);
+
+  // Current period config
+  const periodConfig = PERIOD_OPTIONS.find((p) => p.value === period) || PERIOD_OPTIONS[0];
 
   // ---------------------------------------------------------------------------
   // WebSocket lifecycle
   // ---------------------------------------------------------------------------
-  const connect = useCallback((sym) => {
-    // Close existing connection
+  const connect = useCallback((sym, per, intv) => {
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -183,7 +195,8 @@ const LivePriceChart = () => {
     candlesRef.current = [];
     emaRef.current = null;
 
-    const ws = new WebSocket(`${WS_BASE}/${sym}`);
+    const url = `${WS_BASE}/${sym}?period=${per}&interval=${intv}`;
+    const ws  = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -196,52 +209,37 @@ const LivePriceChart = () => {
         const msg = JSON.parse(event.data);
 
         if (msg.type === "history") {
-          // Initial 60-candle history
-          const hist = msg.candles || [];
-          // Compute EMA for all history candles
-          const emas = computeEMA(hist);
-          // Seed running EMA from last computed value
+          const hist  = msg.candles || [];
+          const emas  = computeEMA(hist);
           emaRef.current = emas[emas.length - 1] ?? null;
-
           const enriched = hist.map((c, i) => ({ ...c, ema: emas[i] }));
           setCandles(enriched);
           candlesRef.current = enriched;
-
-          if (enriched.length >= 2) {
-            setPrevClose(enriched[enriched.length - 2].close);
-          }
+          if (enriched.length >= 2) setPrevClose(enriched[enriched.length - 2].close);
           setLastCandle(enriched[enriched.length - 1] ?? null);
           setStatus("live");
-          setStatusMsg(`Streaming ${sym} — updates every 5s`);
+          setStatusMsg(`${sym} · ${PERIOD_OPTIONS.find(p=>p.value===per)?.label} · ${INTERVAL_LABELS[intv] || intv}`);
         }
 
         else if (msg.type === "candle") {
-          // Incremental update — update running EMA in O(1)
           const newEma = emaRef.current != null
             ? EMA_ALPHA * msg.close + (1 - EMA_ALPHA) * emaRef.current
             : msg.close;
           emaRef.current = newEma;
 
           const newCandle = {
-            time:      msg.time,
-            timestamp: msg.timestamp,
-            open:      msg.open,
-            high:      msg.high,
-            low:       msg.low,
-            close:     msg.close,
-            volume:    msg.volume,
-            ema:       parseFloat(newEma.toFixed(4)),
+            time: msg.time, timestamp: msg.timestamp,
+            open: msg.open, high: msg.high, low: msg.low, close: msg.close,
+            volume: msg.volume, ema: parseFloat(newEma.toFixed(4)),
           };
 
           setCandles((prev) => {
             const updated = msg.is_new_candle
-              ? [...prev, newCandle].slice(-MAX_CANDLES)   // new candle → append
-              : [...prev.slice(0, -1), newCandle];          // same minute → replace last
-
+              ? [...prev, newCandle].slice(-MAX_CANDLES)
+              : [...prev.slice(0, -1), newCandle];
             candlesRef.current = updated;
             return updated;
           });
-
           setLastCandle(newCandle);
           setStatus("live");
         }
@@ -266,18 +264,12 @@ const LivePriceChart = () => {
     };
 
     ws.onclose = () => {
-      if (status !== "error") {
-        setStatus("closed");
-        setStatusMsg("Disconnected");
-      }
+      setStatus((prev) => prev === "error" ? "error" : "closed");
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Disconnect on unmount
   useEffect(() => {
-    return () => {
-      if (wsRef.current) wsRef.current.close();
-    };
+    return () => { if (wsRef.current) wsRef.current.close(); };
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -287,44 +279,46 @@ const LivePriceChart = () => {
     const sym = inputTicker.trim().toUpperCase();
     if (!sym) return;
     setTicker(sym);
-    connect(sym);
+    connect(sym, period, interval);
   };
 
   const handleStop = () => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
+    if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
     setStatus("idle");
     setStatusMsg("");
+  };
+
+  // When period changes, auto-select first valid interval
+  const handlePeriodChange = (newPeriod) => {
+    const cfg = PERIOD_OPTIONS.find((p) => p.value === newPeriod);
+    const newInterval = cfg?.intervals[0] || "1d";
+    setPeriod(newPeriod);
+    setInterval(newInterval);
   };
 
   // ---------------------------------------------------------------------------
   // Derived values
   // ---------------------------------------------------------------------------
-  const currentPrice  = lastCandle?.close ?? null;
-  const priceChange   = currentPrice != null && prevClose != null
-    ? currentPrice - prevClose : null;
-  const changePct     = priceChange != null && prevClose
-    ? (priceChange / prevClose) * 100 : null;
-  const isPositive    = priceChange != null ? priceChange >= 0 : null;
+  const currentPrice = lastCandle?.close ?? null;
+  const priceChange  = currentPrice != null && prevClose != null ? currentPrice - prevClose : null;
+  const changePct    = priceChange != null && prevClose ? (priceChange / prevClose) * 100 : null;
+  const isPositive   = priceChange != null ? priceChange >= 0 : null;
 
-  // Y-axis domain with 1% padding
-  const prices = candles.flatMap((c) => [c.high, c.low]).filter(Boolean);
-  const minP   = prices.length ? Math.min(...prices) : 0;
-  const maxP   = prices.length ? Math.max(...prices) : 100;
-  const pad    = (maxP - minP) * 0.01 || 1;
+  const prices  = candles.flatMap((c) => [c.high, c.low]).filter(Boolean);
+  const minP    = prices.length ? Math.min(...prices) : 0;
+  const maxP    = prices.length ? Math.max(...prices) : 100;
+  const pad     = (maxP - minP) * 0.01 || 1;
   const yDomain = [parseFloat((minP - pad).toFixed(2)), parseFloat((maxP + pad).toFixed(2))];
 
-  const maxVol = candles.length ? Math.max(...candles.map((c) => c.volume || 0)) : 1;
+  // X-axis tick interval — show ~8 labels regardless of candle count
+  const xTickInterval = Math.max(1, Math.floor(candles.length / 8));
 
-  // Status badge config
   const statusConfig = {
-    idle:       { color: "text-gray-500",  dot: "bg-gray-600",  label: "Idle" },
-    connecting: { color: "text-yellow-400", dot: "bg-yellow-400 animate-pulse", label: "Connecting" },
-    live:       { color: "text-green-400",  dot: "bg-green-400 animate-pulse",  label: "LIVE" },
-    closed:     { color: "text-gray-400",   dot: "bg-gray-500",  label: "Disconnected" },
-    error:      { color: "text-red-400",    dot: "bg-red-500",   label: "Error" },
+    idle:       { color: "text-gray-500",   dot: "bg-gray-600",                    label: "Idle" },
+    connecting: { color: "text-yellow-400", dot: "bg-yellow-400 animate-pulse",    label: "Connecting" },
+    live:       { color: "text-green-400",  dot: "bg-green-400 animate-pulse",     label: "LIVE" },
+    closed:     { color: "text-gray-400",   dot: "bg-gray-500",                    label: "Disconnected" },
+    error:      { color: "text-red-400",    dot: "bg-red-500",                     label: "Error" },
   };
   const sc = statusConfig[status] || statusConfig.idle;
 
@@ -334,22 +328,15 @@ const LivePriceChart = () => {
   return (
     <div className="space-y-4">
 
-      {/* ── Header ── */}
-      <div className="card">
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-          {/* Ticker input */}
-          <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wider">
-              Ticker Symbol
-            </label>
-            <TickerAutocomplete
-              value={inputTicker}
-              onChange={setInputTicker}
-              placeholder="AAPL, MSFT, TSLA..."
-            />
-          </div>
+      {/* ── Controls card ── */}
+      <div className="card space-y-4">
 
-          {/* Controls */}
+        {/* Row 1: Ticker + Start/Stop */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1">
+            <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Ticker</label>
+            <TickerAutocomplete value={inputTicker} onChange={setInputTicker} placeholder="AAPL, MSFT, TSLA..." />
+          </div>
           <div className="flex gap-2">
             <button
               onClick={handleStart}
@@ -357,9 +344,9 @@ const LivePriceChart = () => {
               className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900
                          text-white text-sm font-semibold rounded-lg transition-colors"
             >
-              {status === "live" ? "🔄 Switch" : "▶ Start"}
+              {status === "live" ? "🔄 Reload" : "▶ Start"}
             </button>
-            {status === "live" && (
+            {(status === "live" || status === "connecting") && (
               <button
                 onClick={handleStop}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white
@@ -371,12 +358,12 @@ const LivePriceChart = () => {
           </div>
         </div>
 
-        {/* Quick tickers */}
-        <div className="flex flex-wrap gap-1.5 mt-3">
+        {/* Row 2: Quick tickers */}
+        <div className="flex flex-wrap gap-1.5">
           {POPULAR_TICKERS.map((t) => (
             <button
               key={t}
-              onClick={() => { setInputTicker(t); }}
+              onClick={() => setInputTicker(t)}
               className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
                 inputTicker === t
                   ? "bg-blue-600 text-white"
@@ -387,18 +374,55 @@ const LivePriceChart = () => {
             </button>
           ))}
         </div>
+
+        {/* Row 3: Period selector */}
+        <div>
+          <label className="block text-xs text-gray-500 mb-1.5 uppercase tracking-wider">Time Range</label>
+          <div className="flex flex-wrap gap-1.5">
+            {PERIOD_OPTIONS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => handlePeriodChange(p.value)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                  period === p.value
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 4: Interval selector (filtered by period) */}
+        <div>
+          <label className="block text-xs text-gray-500 mb-1.5 uppercase tracking-wider">Interval</label>
+          <div className="flex flex-wrap gap-1.5">
+            {periodConfig.intervals.map((intv) => (
+              <button
+                key={intv}
+                onClick={() => setInterval(intv)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                  interval === intv
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+                }`}
+              >
+                {INTERVAL_LABELS[intv] || intv}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── Price header ── */}
       {(status === "live" || status === "closed") && lastCandle && (
         <div className="card">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            {/* Ticker + price */}
             <div className="flex items-baseline gap-3">
               <span className="text-2xl font-black text-white">{ticker}</span>
-              <span className="text-3xl font-bold text-white">
-                ${currentPrice?.toFixed(2)}
-              </span>
+              <span className="text-3xl font-bold text-white">${currentPrice?.toFixed(2)}</span>
               {priceChange != null && (
                 <span className={`text-lg font-semibold ${isPositive ? "text-green-400" : "text-red-400"}`}>
                   {isPositive ? "▲" : "▼"} {Math.abs(priceChange).toFixed(2)}
@@ -406,8 +430,6 @@ const LivePriceChart = () => {
                 </span>
               )}
             </div>
-
-            {/* Status badge */}
             <div className={`flex items-center gap-2 text-sm ${sc.color}`}>
               <span className={`w-2 h-2 rounded-full ${sc.dot}`}></span>
               <span className="font-medium">{sc.label}</span>
@@ -415,24 +437,22 @@ const LivePriceChart = () => {
             </div>
           </div>
 
-          {/* OHLCV summary row */}
-          {lastCandle && (
-            <div className="flex flex-wrap gap-4 mt-3 text-sm">
-              {[
-                { label: "Open",   value: `$${lastCandle.open?.toFixed(2)}`,   color: "text-gray-300" },
-                { label: "High",   value: `$${lastCandle.high?.toFixed(2)}`,   color: "text-green-400" },
-                { label: "Low",    value: `$${lastCandle.low?.toFixed(2)}`,    color: "text-red-400" },
-                { label: "Close",  value: `$${lastCandle.close?.toFixed(2)}`,  color: "text-white" },
-                { label: "Volume", value: `${((lastCandle.volume || 0) / 1e6).toFixed(2)}M`, color: "text-gray-300" },
-                { label: "EMA(20)", value: lastCandle.ema ? `$${lastCandle.ema?.toFixed(2)}` : "—", color: "text-blue-400" },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="flex flex-col">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">{label}</span>
-                  <span className={`font-mono font-semibold ${color}`}>{value}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* OHLCV row */}
+          <div className="flex flex-wrap gap-4 mt-3 text-sm">
+            {[
+              { label: "Open",    value: `$${lastCandle.open?.toFixed(2)}`,  color: "text-gray-300" },
+              { label: "High",    value: `$${lastCandle.high?.toFixed(2)}`,  color: "text-green-400" },
+              { label: "Low",     value: `$${lastCandle.low?.toFixed(2)}`,   color: "text-red-400" },
+              { label: "Close",   value: `$${lastCandle.close?.toFixed(2)}`, color: "text-white" },
+              { label: "Volume",  value: `${((lastCandle.volume||0)/1e6).toFixed(2)}M`, color: "text-gray-300" },
+              { label: "EMA(20)", value: lastCandle.ema ? `$${lastCandle.ema?.toFixed(2)}` : "—", color: "text-blue-400" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex flex-col">
+                <span className="text-xs text-gray-500 uppercase tracking-wider">{label}</span>
+                <span className={`font-mono font-semibold ${color}`}>{value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -442,29 +462,30 @@ const LivePriceChart = () => {
           <div className="text-5xl mb-4">📈</div>
           <h3 className="text-xl font-semibold text-gray-400 mb-2">Real-Time Candlestick Chart</h3>
           <p className="text-gray-500 text-sm max-w-sm mx-auto">
-            Select a ticker and click <strong className="text-gray-300">▶ Start</strong> to stream
-            live 1-minute OHLCV candles via WebSocket. Updates every 5 seconds.
+            Select a ticker, time range, and interval — then click <strong className="text-gray-300">▶ Start</strong>.
           </p>
-          <div className="mt-4 text-xs text-gray-600">
-            EMA(20) overlay computed client-side using O(1) incremental algorithm
+          <div className="mt-3 text-xs text-gray-600">
+            WebSocket streaming · EMA(20) O(1) incremental · Up to 100 candles
           </div>
         </div>
       )}
 
-      {/* ── Connecting state ── */}
+      {/* ── Connecting ── */}
       {status === "connecting" && (
         <div className="card border border-yellow-800/50">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full border-4 border-yellow-900 border-t-yellow-400 animate-spin"></div>
             <div>
               <h3 className="text-yellow-400 font-semibold">Connecting...</h3>
-              <p className="text-gray-400 text-sm">Fetching historical candles for {ticker}</p>
+              <p className="text-gray-400 text-sm">
+                Fetching {PERIOD_OPTIONS.find(p=>p.value===period)?.label} candles for {ticker}
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Error state ── */}
+      {/* ── Error ── */}
       {status === "error" && (
         <div className="card border border-red-800 bg-red-900/20">
           <div className="flex items-start gap-3">
@@ -472,10 +493,7 @@ const LivePriceChart = () => {
             <div>
               <h3 className="text-red-400 font-semibold">Connection Failed</h3>
               <p className="text-red-300/80 text-sm mt-1">{statusMsg}</p>
-              <button
-                onClick={handleStart}
-                className="mt-2 text-xs text-red-400 hover:text-red-300 underline"
-              >
+              <button onClick={handleStart} className="mt-2 text-xs text-red-400 hover:text-red-300 underline">
                 Retry
               </button>
             </div>
@@ -488,7 +506,7 @@ const LivePriceChart = () => {
         <div className="card">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-              {ticker} — 1m Candlestick
+              {ticker} · {PERIOD_OPTIONS.find(p=>p.value===period)?.label} · {INTERVAL_LABELS[interval]||interval} Candlestick
             </h3>
             <div className="flex items-center gap-4 text-xs text-gray-500">
               <span className="flex items-center gap-1">
@@ -503,18 +521,15 @@ const LivePriceChart = () => {
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={320}>
-            <ComposedChart
-              data={candles}
-              margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
-            >
+          <ResponsiveContainer width="100%" height={340}>
+            <ComposedChart data={candles} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
               <XAxis
                 dataKey="time"
                 tick={{ fill: "#6b7280", fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                interval={Math.floor(candles.length / 8)}
+                interval={xTickInterval}
               />
               <YAxis
                 domain={yDomain}
@@ -522,18 +537,10 @@ const LivePriceChart = () => {
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v) => `$${v.toFixed(0)}`}
-                width={55}
+                width={58}
               />
               <Tooltip content={<CandleTooltip />} />
-
-              {/* Candlestick bars — rendered as custom shape */}
-              <Bar
-                dataKey="high"
-                shape={<CandlestickBar />}
-                isAnimationActive={false}
-              />
-
-              {/* EMA(20) line overlay */}
+              <Bar dataKey="high" shape={<CandlestickBar />} isAnimationActive={false} />
               <Line
                 type="monotone"
                 dataKey="ema"
@@ -551,14 +558,9 @@ const LivePriceChart = () => {
       {/* ── Volume Chart ── */}
       {candles.length > 0 && (
         <div className="card">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Volume
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Volume</h3>
           <ResponsiveContainer width="100%" height={100}>
-            <ComposedChart
-              data={candles}
-              margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
-            >
+            <ComposedChart data={candles} margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
               <XAxis dataKey="time" hide />
               <YAxis
                 tick={{ fill: "#6b7280", fontSize: 9 }}
@@ -575,11 +577,7 @@ const LivePriceChart = () => {
               />
               <Bar dataKey="volume" isAnimationActive={false} maxBarSize={12}>
                 {candles.map((c, i) => (
-                  <Cell
-                    key={i}
-                    fill={c.close >= c.open ? "#16a34a" : "#dc2626"}
-                    opacity={0.7}
-                  />
+                  <Cell key={i} fill={c.close >= c.open ? "#16a34a" : "#dc2626"} opacity={0.7} />
                 ))}
               </Bar>
             </ComposedChart>
@@ -587,10 +585,10 @@ const LivePriceChart = () => {
         </div>
       )}
 
-      {/* ── Info footer ── */}
+      {/* ── Footer ── */}
       <div className="text-xs text-gray-600 text-center">
-        Data: yfinance 1-minute bars · WebSocket push every 5s ·
-        EMA(20) computed client-side (O(1) incremental) · Max {MAX_CANDLES} candles displayed
+        Data: yfinance · WebSocket push every 5s (intraday) / 60s (daily) ·
+        EMA(20) O(1) incremental · Max {MAX_CANDLES} candles
       </div>
     </div>
   );
