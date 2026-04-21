@@ -268,9 +268,23 @@ const LivePriceChart = () => {
     };
   }, []);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => { if (wsRef.current) wsRef.current.close(); };
   }, []);
+
+  // Track whether chart is currently streaming (via ref to avoid stale closure)
+  const isStreamingRef = useRef(false);
+  useEffect(() => {
+    isStreamingRef.current = (status === "live" || status === "connecting");
+  }, [status]);
+
+  // Auto-reconnect when period OR interval changes — only if already streaming
+  useEffect(() => {
+    if (isStreamingRef.current && ticker) {
+      connect(ticker, period, interval);
+    }
+  }, [period, interval]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -286,14 +300,17 @@ const LivePriceChart = () => {
     if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
     setStatus("idle");
     setStatusMsg("");
+    isStreamingRef.current = false;
   };
 
-  // When period changes, auto-select first valid interval
+  // When period changes: auto-select finest valid interval,
+  // then the useEffect above fires and auto-reconnects if streaming
   const handlePeriodChange = (newPeriod) => {
     const cfg = PERIOD_OPTIONS.find((p) => p.value === newPeriod);
     const newInterval = cfg?.intervals[0] || "1d";
     setPeriod(newPeriod);
     setInterval(newInterval);
+    // useEffect([period, interval]) will auto-reconnect
   };
 
   // ---------------------------------------------------------------------------
