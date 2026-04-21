@@ -1,13 +1,15 @@
 /**
- * QuantMind Dashboard — main React application with 6-tab navigation.
+ * QuantMind Dashboard — main React application with 8-tab navigation.
  *
  * Tabs:
- *   1. Analyze    — single stock AI analysis (original feature)
- *   2. Portfolio  — real-time P&L tracker (HV Feature 1)
- *   3. Compare    — rank multiple tickers (HV Feature 2)
- *   4. Optimize   — find best strategy params (HV Feature 3)
- *   5. Alerts     — WebSocket price alerts (HV Feature 4)
- *   6. Earnings   — upcoming earnings calendar (HV Feature 5)
+ *   1. Analyze    — single stock AI analysis (7-agent LangGraph pipeline)
+ *   2. Portfolio  — real-time P&L tracker
+ *   3. Compare    — rank multiple tickers (asyncio.gather parallel)
+ *   4. Optimize   — grid-search strategy params
+ *   5. Alerts     — WebSocket price alerts (ConnectionManager)
+ *   6. Earnings   — upcoming earnings calendar
+ *   7. Validate   — walk-forward validation (robustness ratio)
+ *   8. Live       — real-time candlestick chart (WebSocket streaming)
  */
 
 import { useState } from "react";
@@ -23,6 +25,7 @@ import StrategyOptimizer from "./components/StrategyOptimizer";
 import PriceAlerts from "./components/PriceAlerts";
 import EarningsCalendar from "./components/EarningsCalendar";
 import WalkForwardAnalysis from "./components/WalkForwardAnalysis";
+import LivePriceChart from "./components/LivePriceChart";
 
 const TABS = [
   { id: "analyze",      label: "🔍 Analyze",   desc: "Single stock AI analysis" },
@@ -32,6 +35,7 @@ const TABS = [
   { id: "alerts",       label: "🔔 Alerts",    desc: "WebSocket price alerts" },
   { id: "earnings",     label: "📅 Earnings",  desc: "Upcoming earnings calendar" },
   { id: "validate",     label: "🔬 Validate",  desc: "Walk-forward validation" },
+  { id: "live",         label: "📈 Live",       desc: "Real-time candlestick chart" },
 ];
 
 const App = () => {
@@ -190,6 +194,9 @@ const App = () => {
 
         {/* ===== TAB 7: VALIDATE ===== */}
         {activeTab === "validate" && <WalkForwardAnalysis />}
+
+        {/* ===== TAB 8: LIVE CHART ===== */}
+        {activeTab === "live" && <LivePriceChart />}
 
       </main>
 

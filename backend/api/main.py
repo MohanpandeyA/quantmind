@@ -39,6 +39,7 @@ from api.routes.alerts import router as alerts_router
 from api.routes.earnings import router as earnings_router
 from api.routes.ticker import router as ticker_router
 from api.routes.walk_forward import router as walk_forward_router
+from api.routes.live_chart import router as live_chart_router
 from api.schemas import HealthResponse
 from config.logging_config import get_logger, setup_logging, stop_logging
 from config.settings import settings
@@ -166,6 +167,7 @@ app.include_router(alerts_router)
 app.include_router(earnings_router)
 app.include_router(ticker_router)
 app.include_router(walk_forward_router)
+app.include_router(live_chart_router)
 
 
 # --- Health check endpoint ---
