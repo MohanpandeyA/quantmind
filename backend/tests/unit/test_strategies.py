@@ -8,24 +8,25 @@ Tests cover:
 - Signal enum values
 """
 
-import pytest
-import numpy as np
-import pandas as pd
 from datetime import datetime, timedelta
 
+import numpy as np
+import pandas as pd
+import pytest
+
 from engine.strategies.base_strategy import (
-    BaseStrategy,
     BacktestResult,
+    BaseStrategy,
     Signal,
     StrategyConfig,
 )
-from engine.strategies.momentum import MomentumStrategy
 from engine.strategies.mean_reversion import MeanReversionStrategy
-
+from engine.strategies.momentum import MomentumStrategy
 
 # ---------------------------------------------------------------------------
 # Helpers / Fixtures
 # ---------------------------------------------------------------------------
+
 
 def make_ohlcv_df(
     n: int = 200,
@@ -102,6 +103,7 @@ def mean_reverting_df() -> pd.DataFrame:
 # Signal enum tests
 # ---------------------------------------------------------------------------
 
+
 class TestSignalEnum:
     """Tests for Signal enum values."""
 
@@ -122,6 +124,7 @@ class TestSignalEnum:
 # ---------------------------------------------------------------------------
 # StrategyConfig tests
 # ---------------------------------------------------------------------------
+
 
 class TestStrategyConfig:
     """Tests for StrategyConfig validation."""
@@ -175,6 +178,7 @@ class TestStrategyConfig:
 # BaseStrategy abstract enforcement tests
 # ---------------------------------------------------------------------------
 
+
 class TestBaseStrategyAbstract:
     """Tests that BaseStrategy cannot be instantiated directly."""
 
@@ -186,6 +190,7 @@ class TestBaseStrategyAbstract:
         class IncompleteStrategy(BaseStrategy):
             def get_name(self) -> str:
                 return "Incomplete"
+
             # Missing generate_signals
 
         with pytest.raises(TypeError):
@@ -195,6 +200,7 @@ class TestBaseStrategyAbstract:
         class IncompleteStrategy(BaseStrategy):
             def generate_signals(self, df: pd.DataFrame) -> np.ndarray:
                 return np.zeros(len(df), dtype=int)
+
             # Missing get_name
 
         with pytest.raises(TypeError):
@@ -204,6 +210,7 @@ class TestBaseStrategyAbstract:
 # ---------------------------------------------------------------------------
 # DataFrame validation tests (via MomentumStrategy)
 # ---------------------------------------------------------------------------
+
 
 class TestDataFrameValidation:
     """Tests for _validate_dataframe() in BaseStrategy."""
@@ -232,6 +239,7 @@ class TestDataFrameValidation:
 # MomentumStrategy tests
 # ---------------------------------------------------------------------------
 
+
 class TestMomentumStrategy:
     """Tests for MomentumStrategy signal generation."""
 
@@ -255,11 +263,15 @@ class TestMomentumStrategy:
 
     def test_short_window_gte_long_raises(self) -> None:
         with pytest.raises(ValueError, match="short_window.*<.*long_window"):
-            MomentumStrategy(StrategyConfig(params={"short_window": 50, "long_window": 20}))
+            MomentumStrategy(
+                StrategyConfig(params={"short_window": 50, "long_window": 20})
+            )
 
     def test_short_window_equals_long_raises(self) -> None:
         with pytest.raises(ValueError, match="short_window.*<.*long_window"):
-            MomentumStrategy(StrategyConfig(params={"short_window": 20, "long_window": 20}))
+            MomentumStrategy(
+                StrategyConfig(params={"short_window": 20, "long_window": 20})
+            )
 
     def test_signals_correct_length(self, default_df: pd.DataFrame) -> None:
         strategy = MomentumStrategy()
@@ -292,7 +304,13 @@ class TestMomentumStrategy:
         volumes = np.full(len(closes), 1_000_000.0)
         dates = pd.date_range("2020-01-01", periods=len(closes), freq="B")
         df = pd.DataFrame(
-            {"open": opens, "high": highs, "low": lows, "close": closes, "volume": volumes},
+            {
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "close": closes,
+                "volume": volumes,
+            },
             index=dates,
         )
         strategy = MomentumStrategy(
@@ -300,7 +318,9 @@ class TestMomentumStrategy:
         )
         signals = strategy.generate_signals(df)
         n_buys = int(np.sum(signals == Signal.BUY.value))
-        assert n_buys >= 1, "Flat-then-trending market must generate at least one BUY signal"
+        assert (
+            n_buys >= 1
+        ), "Flat-then-trending market must generate at least one BUY signal"
 
     def test_too_short_dataframe_raises(self) -> None:
         strategy = MomentumStrategy()  # long_window=50
@@ -309,7 +329,9 @@ class TestMomentumStrategy:
             strategy.generate_signals(df)
 
     def test_ema_mode_generates_signals(self, default_df: pd.DataFrame) -> None:
-        config = StrategyConfig(params={"short_window": 10, "long_window": 30, "use_ema": 1})
+        config = StrategyConfig(
+            params={"short_window": 10, "long_window": 30, "use_ema": 1}
+        )
         strategy = MomentumStrategy(config)
         signals = strategy.generate_signals(default_df)
         assert len(signals) == len(default_df)
@@ -328,6 +350,7 @@ class TestMomentumStrategy:
 # ---------------------------------------------------------------------------
 # MeanReversionStrategy tests
 # ---------------------------------------------------------------------------
+
 
 class TestMeanReversionStrategy:
     """Tests for MeanReversionStrategy signal generation."""

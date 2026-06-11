@@ -58,7 +58,7 @@ logger = get_logger(__name__)
 FINBERT_MODEL = "ProsusAI/finbert"
 
 # Sentiment thresholds
-BULLISH_THRESHOLD = 0.15   # score > 0.15 → BULLISH
+BULLISH_THRESHOLD = 0.15  # score > 0.15 → BULLISH
 BEARISH_THRESHOLD = -0.15  # score < -0.15 → BEARISH
 
 # Max sentences to analyze (performance limit)
@@ -74,6 +74,7 @@ def _get_finbert_lock():
     global _finbert_lock
     if _finbert_lock is None:
         import threading
+
         _finbert_lock = threading.Lock()
     return _finbert_lock
 
@@ -96,6 +97,7 @@ def _load_finbert():
 
         try:
             from transformers import pipeline  # type: ignore[import]
+
             logger.info("SentimentAgent | loading FinBERT | model=%s", FINBERT_MODEL)
             _finbert_pipeline = pipeline(
                 "text-classification",
@@ -110,7 +112,8 @@ def _load_finbert():
         except Exception as e:
             logger.warning(
                 "SentimentAgent | FinBERT load failed | %s | "
-                "Using fallback keyword scoring", e,
+                "Using fallback keyword scoring",
+                e,
             )
             _finbert_pipeline = None
 
@@ -153,9 +156,7 @@ async def sentiment_agent(state: TradingState) -> TradingState:
         all_sentences = (rag_sentences + reddit_sentences)[:MAX_SENTENCES]
 
         if not all_sentences:
-            logger.warning(
-                "SentimentAgent | no text to analyze | ticker=%s", ticker
-            )
+            logger.warning("SentimentAgent | no text to analyze | ticker=%s", ticker)
             return _neutral_state(state)
 
         # 4. Score with FinBERT (or fallback)
@@ -170,17 +171,19 @@ async def sentiment_agent(state: TradingState) -> TradingState:
 
         # 6. Get top sentences for display
         top_positive = sorted(
-            [(s, sc) for s, sc, _ in scored if sc > 0],
-            key=lambda x: x[1], reverse=True
+            [(s, sc) for s, sc, _ in scored if sc > 0], key=lambda x: x[1], reverse=True
         )[:3]
         top_negative = sorted(
-            [(s, sc) for s, sc, _ in scored if sc < 0],
-            key=lambda x: x[1]
+            [(s, sc) for s, sc, _ in scored if sc < 0], key=lambda x: x[1]
         )[:3]
 
         sentiment_details = {
-            "top_positive": [{"text": s[:120], "score": round(sc, 3)} for s, sc in top_positive],
-            "top_negative": [{"text": s[:120], "score": round(sc, 3)} for s, sc in top_negative],
+            "top_positive": [
+                {"text": s[:120], "score": round(sc, 3)} for s, sc in top_positive
+            ],
+            "top_negative": [
+                {"text": s[:120], "score": round(sc, 3)} for s, sc in top_negative
+            ],
             "total_sentences": len(scored),
             "rag_sentences": len(rag_sentences),
             "reddit_sentences": len(reddit_sentences),
@@ -189,7 +192,11 @@ async def sentiment_agent(state: TradingState) -> TradingState:
         logger.info(
             "SentimentAgent | complete | ticker=%s | score=%.3f | label=%s | "
             "confidence=%.3f | sentences=%d",
-            ticker, sentiment_score, sentiment_label, confidence, len(scored),
+            ticker,
+            sentiment_score,
+            sentiment_label,
+            confidence,
+            len(scored),
         )
 
         return {
@@ -220,18 +227,22 @@ def _extract_sentences(text: str) -> List[str]:
         return []
 
     # Remove [Source N] headers and section markers
-    text = re.sub(r'\[Source \d+\][^\n]*\n?', '', text)
-    text = re.sub(r'---+', '', text)
+    text = re.sub(r"\[Source \d+\][^\n]*\n?", "", text)
+    text = re.sub(r"---+", "", text)
 
     # Split on sentence boundaries AND newlines
-    parts = re.split(r'(?<=[.!?])\s+|\n+', text)
+    parts = re.split(r"(?<=[.!?])\s+|\n+", text)
 
     # Filter: keep meaningful text (8+ chars, not just headers)
     clean = []
     for s in parts:
         s = s.strip()
         # Skip very short, pure numbers, or header-like lines
-        if len(s) >= 8 and not s.startswith('[') and not re.match(r'^[\d\s\$\%\.\,]+$', s):
+        if (
+            len(s) >= 8
+            and not s.startswith("[")
+            and not re.match(r"^[\d\s\$\%\.\,]+$", s)
+        ):
             # Truncate very long sentences
             clean.append(s[:300])
 
@@ -258,7 +269,9 @@ async def _fetch_reddit_sentences(ticker: str) -> List[str]:
 
         logger.info(
             "SentimentAgent | reddit | ticker=%s | posts=%d | sentences=%d",
-            ticker, len(docs), len(sentences),
+            ticker,
+            len(docs),
+            len(sentences),
         )
         return sentences[:10]  # Max 10 from Reddit
 
@@ -353,14 +366,46 @@ def _score_with_keywords(sentences: List[str]) -> List[Tuple[str, float, float]]
         List of (sentence, score, confidence) tuples.
     """
     POSITIVE_WORDS = {
-        "beat", "exceeded", "grew", "growth", "record", "strong", "bullish",
-        "upgrade", "outperform", "buy", "positive", "profit", "revenue",
-        "increase", "rose", "gained", "rally", "surge", "momentum", "recovery",
+        "beat",
+        "exceeded",
+        "grew",
+        "growth",
+        "record",
+        "strong",
+        "bullish",
+        "upgrade",
+        "outperform",
+        "buy",
+        "positive",
+        "profit",
+        "revenue",
+        "increase",
+        "rose",
+        "gained",
+        "rally",
+        "surge",
+        "momentum",
+        "recovery",
     }
     NEGATIVE_WORDS = {
-        "miss", "declined", "fell", "weak", "bearish", "downgrade", "sell",
-        "negative", "loss", "decrease", "dropped", "slump", "concern",
-        "risk", "headwind", "competition", "lawsuit", "investigation",
+        "miss",
+        "declined",
+        "fell",
+        "weak",
+        "bearish",
+        "downgrade",
+        "sell",
+        "negative",
+        "loss",
+        "decrease",
+        "dropped",
+        "slump",
+        "concern",
+        "risk",
+        "headwind",
+        "competition",
+        "lawsuit",
+        "investigation",
     }
 
     results = []

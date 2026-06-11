@@ -32,7 +32,12 @@ import yfinance as yf
 from config.logging_config import get_logger
 from engine.metrics import PerformanceReport, compute_full_report
 from engine.segment_tree import AggregationType, SegmentTree, build_price_trees
-from engine.strategies.base_strategy import BacktestResult, BaseStrategy, Signal, StrategyConfig
+from engine.strategies.base_strategy import (
+    BacktestResult,
+    BaseStrategy,
+    Signal,
+    StrategyConfig,
+)
 
 logger = get_logger(__name__)
 
@@ -136,9 +141,13 @@ class Backtester:
         df = raw.copy()
         if hasattr(df.columns, "levels"):
             # MultiIndex: take the first level (metric name), lowercase it
-            df.columns = [c[0].lower() if isinstance(c, tuple) else c.lower() for c in df.columns]
+            df.columns = [
+                c[0].lower() if isinstance(c, tuple) else c.lower() for c in df.columns
+            ]
         else:
-            df.columns = [c[0].lower() if isinstance(c, tuple) else c.lower() for c in df.columns]
+            df.columns = [
+                c[0].lower() if isinstance(c, tuple) else c.lower() for c in df.columns
+            ]
 
         # Ensure required columns exist
         required = {"open", "high", "low", "close", "volume"}
@@ -244,9 +253,7 @@ class Backtester:
         signals = self.strategy.generate_signals(df)
 
         # Step 4: Simulate execution
-        equity_curve, returns, trade_returns = self._simulate_execution(
-            df, signals
-        )
+        equity_curve, returns, trade_returns = self._simulate_execution(df, signals)
 
         # Step 5: Build result
         result = BacktestResult(
@@ -312,7 +319,7 @@ class Backtester:
         equity_curve[0] = capital
 
         trade_returns: list[float] = []
-        position: int = 0          # 0 = flat, 1 = long, -1 = short
+        position: int = 0  # 0 = flat, 1 = long, -1 = short
         entry_price: float = 0.0
         entry_capital: float = 0.0
         shares: float = 0.0
@@ -349,7 +356,9 @@ class Backtester:
                     "BUY | bar=%d | price=%.2f | shares=%.4f", i, exec_price, shares
                 )
 
-            elif sig == Signal.SELL.value and position == 0 and not self.config.long_only:
+            elif (
+                sig == Signal.SELL.value and position == 0 and not self.config.long_only
+            ):
                 # Short entry (only if not long_only)
                 deploy = capital * position_size
                 cost = deploy * commission
@@ -375,7 +384,9 @@ class Backtester:
                 shares = 0.0
                 logger.debug(
                     "SELL | bar=%d | price=%.2f | trade_ret=%.4f",
-                    i, exec_price, trade_ret,
+                    i,
+                    exec_price,
+                    trade_ret,
                 )
 
             elif sig == Signal.BUY.value and position == -1:
@@ -390,7 +401,9 @@ class Backtester:
                 shares = 0.0
                 logger.debug(
                     "COVER | bar=%d | price=%.2f | trade_ret=%.4f",
-                    i, exec_price, trade_ret,
+                    i,
+                    exec_price,
+                    trade_ret,
                 )
 
             # Mark to market

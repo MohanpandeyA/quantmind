@@ -54,6 +54,7 @@ router = APIRouter(prefix="/compare", tags=["Comparison"])
 # Schemas
 # ---------------------------------------------------------------------------
 
+
 class CompareRequest(BaseModel):
     """Request to compare multiple tickers.
 
@@ -114,6 +115,7 @@ class CompareResponse(BaseModel):
 # Route
 # ---------------------------------------------------------------------------
 
+
 @router.post(
     "",
     response_model=CompareResponse,
@@ -138,11 +140,13 @@ async def compare_tickers(request: CompareRequest) -> CompareResponse:
         CompareResponse with ranked tickers.
     """
     import time
+
     start_time = time.perf_counter()
 
     logger.info(
         "Compare | starting | tickers=%s | query=%r",
-        request.tickers, request.query[:50],
+        request.tickers,
+        request.query[:50],
     )
 
     # Run all analyses in parallel with small stagger to avoid rate limits
@@ -165,8 +169,7 @@ async def compare_tickers(request: CompareRequest) -> CompareResponse:
 
     # Stagger starts by 0.5s each
     tasks = [
-        analyze_with_delay(ticker, i * 0.5)
-        for i, ticker in enumerate(request.tickers)
+        analyze_with_delay(ticker, i * 0.5) for i, ticker in enumerate(request.tickers)
     ]
     results = await asyncio.gather(*tasks)
 
@@ -178,18 +181,20 @@ async def compare_tickers(request: CompareRequest) -> CompareResponse:
 
         if not result or item["error"]:
             # Failed analysis — put at bottom with zero scores
-            rankings.append(TickerRanking(
-                rank=0,
-                ticker=ticker,
-                signal="HOLD",
-                composite_score=0.0,
-                sharpe_ratio=0.0,
-                total_return=0.0,
-                max_drawdown=1.0,
-                win_rate=0.0,
-                strategy="unknown",
-                summary=f"Analysis failed: {item.get('error', 'unknown error')}",
-            ))
+            rankings.append(
+                TickerRanking(
+                    rank=0,
+                    ticker=ticker,
+                    signal="HOLD",
+                    composite_score=0.0,
+                    sharpe_ratio=0.0,
+                    total_return=0.0,
+                    max_drawdown=1.0,
+                    win_rate=0.0,
+                    strategy="unknown",
+                    summary=f"Analysis failed: {item.get('error', 'unknown error')}",
+                )
+            )
             continue
 
         bt = result.get("backtest_results", {})
@@ -212,29 +217,32 @@ async def compare_tickers(request: CompareRequest) -> CompareResponse:
         win_norm = win_rate
 
         composite = (
-            0.40 * sharpe_norm
-            + 0.30 * return_norm
-            + 0.20 * mdd_norm
-            + 0.10 * win_norm
+            0.40 * sharpe_norm + 0.30 * return_norm + 0.20 * mdd_norm + 0.10 * win_norm
         )
 
         # One-line summary from explanation
         explanation = result.get("final_explanation", "")
-        summary_lines = [l for l in explanation.split("\n") if l.strip() and not l.startswith("SIGNAL")]
+        summary_lines = [
+            l
+            for l in explanation.split("\n")
+            if l.strip() and not l.startswith("SIGNAL")
+        ]
         summary = summary_lines[0][:100] if summary_lines else f"{ticker}: {signal}"
 
-        rankings.append(TickerRanking(
-            rank=0,  # Will be set after sorting
-            ticker=ticker,
-            signal=signal,
-            composite_score=round(composite, 4),
-            sharpe_ratio=round(sharpe, 3),
-            total_return=round(total_return, 4),
-            max_drawdown=round(max_dd, 4),
-            win_rate=round(win_rate, 3),
-            strategy=strategy,
-            summary=summary,
-        ))
+        rankings.append(
+            TickerRanking(
+                rank=0,  # Will be set after sorting
+                ticker=ticker,
+                signal=signal,
+                composite_score=round(composite, 4),
+                sharpe_ratio=round(sharpe, 3),
+                total_return=round(total_return, 4),
+                max_drawdown=round(max_dd, 4),
+                win_rate=round(win_rate, 3),
+                strategy=strategy,
+                summary=summary,
+            )
+        )
 
     # Sort by composite score (highest first) and assign ranks
     rankings.sort(key=lambda r: r.composite_score, reverse=True)

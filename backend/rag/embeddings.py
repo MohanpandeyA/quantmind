@@ -114,6 +114,7 @@ class EmbeddingModel:
         if self.use_openai:
             try:
                 from openai import OpenAI  # type: ignore[import]
+
                 self._model = OpenAI(api_key=settings.openai_api_key)
                 logger.info("EmbeddingModel | OpenAI client loaded")
             except ImportError:
@@ -123,14 +124,19 @@ class EmbeddingModel:
                 raise
         else:
             try:
-                from sentence_transformers import SentenceTransformer  # type: ignore[import]
+                from sentence_transformers import (
+                    SentenceTransformer,  # type: ignore[import]
+                )
+
                 global _SENTENCE_TRANSFORMER_SINGLETON
                 # Double-checked locking: fast path (no lock) if already loaded
                 if _SENTENCE_TRANSFORMER_SINGLETON is None:
                     with _SENTENCE_TRANSFORMER_LOCK:
                         # Re-check inside lock (another thread may have loaded it)
                         if _SENTENCE_TRANSFORMER_SINGLETON is None:
-                            _SENTENCE_TRANSFORMER_SINGLETON = SentenceTransformer(self.model_name)
+                            _SENTENCE_TRANSFORMER_SINGLETON = SentenceTransformer(
+                                self.model_name
+                            )
                 self._model = _SENTENCE_TRANSFORMER_SINGLETON
                 logger.info(
                     "EmbeddingModel | sentence-transformers loaded | model=%s",
@@ -194,13 +200,9 @@ class EmbeddingModel:
         loop = asyncio.get_event_loop()
 
         if self.use_openai:
-            vectors = await loop.run_in_executor(
-                None, self._embed_openai_batch, texts
-            )
+            vectors = await loop.run_in_executor(None, self._embed_openai_batch, texts)
         else:
-            vectors = await loop.run_in_executor(
-                None, self._embed_local_batch, texts
-            )
+            vectors = await loop.run_in_executor(None, self._embed_local_batch, texts)
 
         logger.debug(
             "EmbeddingModel | embedded | n=%d | shape=%s", len(texts), vectors.shape
@@ -243,7 +245,7 @@ class EmbeddingModel:
         all_vectors: List[np.ndarray] = []
 
         for i in range(0, len(texts), self.batch_size):
-            batch = texts[i: i + self.batch_size]
+            batch = texts[i : i + self.batch_size]
             # encode() returns numpy array, normalize_embeddings=True for cosine sim
             batch_vectors = model.encode(  # type: ignore[union-attr]
                 batch,
@@ -270,7 +272,7 @@ class EmbeddingModel:
         all_vectors: List[np.ndarray] = []
 
         for i in range(0, len(texts), self.batch_size):
-            batch = texts[i: i + self.batch_size]
+            batch = texts[i : i + self.batch_size]
             # Truncate texts to avoid token limit errors
             batch = [t[:8000] for t in batch]
 

@@ -41,9 +41,9 @@ from engine.strategies.base_strategy import BaseStrategy, Signal, StrategyConfig
 logger = get_logger(__name__)
 
 # Default hyperparameters (industry standard values)
-DEFAULT_PERIOD = 14       # Wilder's original 14-day RSI
-DEFAULT_OVERSOLD = 30     # Below 30 = oversold → BUY signal
-DEFAULT_OVERBOUGHT = 70   # Above 70 = overbought → SELL signal
+DEFAULT_PERIOD = 14  # Wilder's original 14-day RSI
+DEFAULT_OVERSOLD = 30  # Below 30 = oversold → BUY signal
+DEFAULT_OVERBOUGHT = 70  # Above 70 = overbought → SELL signal
 
 
 class RSIStrategy(BaseStrategy):
@@ -133,7 +133,9 @@ class RSIStrategy(BaseStrategy):
         if n < self.period + 1:
             logger.warning(
                 "%s | insufficient data for RSI | n=%d < period+1=%d",
-                self.get_name(), n, self.period + 1,
+                self.get_name(),
+                n,
+                self.period + 1,
             )
             return signals
 
@@ -143,8 +145,8 @@ class RSIStrategy(BaseStrategy):
         losses = np.where(deltas < 0, -deltas, 0.0)
 
         # Initial average gain/loss (simple average over first `period` bars)
-        avg_gain = np.mean(gains[:self.period])
-        avg_loss = np.mean(losses[:self.period])
+        avg_gain = np.mean(gains[: self.period])
+        avg_loss = np.mean(losses[: self.period])
 
         # Compute RSI for each bar after warmup using Wilder's smoothing
         rsi_values = np.full(n, np.nan)
@@ -170,7 +172,7 @@ class RSIStrategy(BaseStrategy):
             if np.isnan(rsi_values[i]):
                 continue
             if rsi_values[i] < self.oversold:
-                signals[i + 1] = 1   # BUY next bar
+                signals[i + 1] = 1  # BUY next bar
             elif rsi_values[i] > self.overbought:
                 signals[i + 1] = -1  # SELL next bar
 
@@ -178,7 +180,10 @@ class RSIStrategy(BaseStrategy):
         sells = int(np.sum(signals == -1))
         logger.info(
             "%s | signals generated | n=%d | buys=%d | sells=%d",
-            self.get_name(), n, buys, sells,
+            self.get_name(),
+            n,
+            buys,
+            sells,
         )
         return signals
 

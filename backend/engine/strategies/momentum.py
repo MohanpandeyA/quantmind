@@ -31,9 +31,9 @@ from engine.strategies.base_strategy import BaseStrategy, Signal, StrategyConfig
 logger = get_logger(__name__)
 
 # Default hyperparameters
-DEFAULT_SHORT_WINDOW = 20   # 20-day SMA (1 trading month)
-DEFAULT_LONG_WINDOW = 50    # 50-day SMA (2.5 trading months)
-DEFAULT_USE_EMA = False     # Use SMA by default; EMA is more responsive
+DEFAULT_SHORT_WINDOW = 20  # 20-day SMA (1 trading month)
+DEFAULT_LONG_WINDOW = 50  # 50-day SMA (2.5 trading months)
+DEFAULT_USE_EMA = False  # Use SMA by default; EMA is more responsive
 
 
 class MomentumStrategy(BaseStrategy):
@@ -151,6 +151,7 @@ class MomentumStrategy(BaseStrategy):
             return Signal.HOLD
 
         import math
+
         if math.isnan(prev_short) or math.isnan(prev_long):
             return Signal.HOLD
 
@@ -158,7 +159,9 @@ class MomentumStrategy(BaseStrategy):
         if prev_short <= prev_long and curr_short > curr_long:
             logger.debug(
                 "Golden cross | short=%.4f | long=%.4f | price=%.2f",
-                curr_short, curr_long, price,
+                curr_short,
+                curr_long,
+                price,
             )
             return Signal.BUY
 
@@ -166,7 +169,9 @@ class MomentumStrategy(BaseStrategy):
         if prev_short >= prev_long and curr_short < curr_long:
             logger.debug(
                 "Death cross | short=%.4f | long=%.4f | price=%.2f",
-                curr_short, curr_long, price,
+                curr_short,
+                curr_long,
+                price,
             )
             return Signal.SELL
 
@@ -247,6 +252,9 @@ class MomentumStrategy(BaseStrategy):
         n_sells = int(np.sum(signals == Signal.SELL.value))
         logger.info(
             "%s | signals generated | n=%d | buys=%d | sells=%d",
-            self.get_name(), n, n_buys, n_sells,
+            self.get_name(),
+            n,
+            n_buys,
+            n_sells,
         )
         return signals

@@ -45,9 +45,9 @@ import aiohttp
 from config.logging_config import get_logger
 from rag.sources.base_loader import (
     BaseLoader,
+    DocType,
     Document,
     DocumentMetadata,
-    DocType,
     LoaderError,
     RateLimitError,
 )
@@ -173,7 +173,9 @@ class SECLoader(BaseLoader):
             max_filings: Max filings per type per ticker. Default: 5.
             days_back: Only fetch filings from last N days. Default: 365.
         """
-        self.filing_types: List[str] = filing_types or list(SUPPORTED_FILING_TYPES.keys())
+        self.filing_types: List[str] = filing_types or list(
+            SUPPORTED_FILING_TYPES.keys()
+        )
         self.max_filings: int = max_filings
         self.days_back: int = days_back
 
@@ -216,7 +218,10 @@ class SECLoader(BaseLoader):
 
         logger.info(
             "SECLoader | loading | ticker=%s | types=%s | max=%d | days_back=%d",
-            ticker_upper, self.filing_types, max_filings, days_back,
+            ticker_upper,
+            self.filing_types,
+            max_filings,
+            days_back,
         )
 
         async with aiohttp.ClientSession(headers=EDGAR_HEADERS) as session:
@@ -230,11 +235,14 @@ class SECLoader(BaseLoader):
                 logger.warning(
                     "SECLoader | ticker not in EDGAR map | ticker=%s | "
                     "total_companies_indexed=%d",
-                    ticker_upper, len(_ticker_to_cik),
+                    ticker_upper,
+                    len(_ticker_to_cik),
                 )
                 return []
 
-            logger.debug("SECLoader | CIK found | ticker=%s | cik=%s", ticker_upper, cik)
+            logger.debug(
+                "SECLoader | CIK found | ticker=%s | cik=%s", ticker_upper, cik
+            )
 
             # Step 3: Fetch filing metadata
             filings_meta = await self._get_filings_metadata(session, cik, cutoff_date)
@@ -286,7 +294,9 @@ class SECLoader(BaseLoader):
 
         try:
             await asyncio.sleep(EDGAR_RATE_LIMIT_DELAY)
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=15)
+            ) as resp:
                 if resp.status != 200:
                     return []
 
@@ -311,12 +321,14 @@ class SECLoader(BaseLoader):
                         continue
 
                     if form in self.filing_types:
-                        filings.append({
-                            "form": form,
-                            "filingDate": date_str,
-                            "accessionNumber": accession,
-                            "primaryDocument": primary_doc,
-                        })
+                        filings.append(
+                            {
+                                "form": form,
+                                "filingDate": date_str,
+                                "accessionNumber": accession,
+                                "primaryDocument": primary_doc,
+                            }
+                        )
 
                 logger.debug(
                     "SECLoader | filings found | cik=%s | count=%d", cik, len(filings)
@@ -354,7 +366,9 @@ class SECLoader(BaseLoader):
         url = f"{EDGAR_ARCHIVES_URL}/{int(cik)}/{accession}/{primary_doc}"
 
         try:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=30)
+            ) as resp:
                 if resp.status != 200:
                     return None
 
@@ -392,7 +406,10 @@ class SECLoader(BaseLoader):
 
         logger.debug(
             "SECLoader | filing downloaded | ticker=%s | type=%s | date=%s | chars=%d",
-            ticker, filing_type, filing_date, len(clean_text),
+            ticker,
+            filing_type,
+            filing_date,
+            len(clean_text),
         )
 
         return Document(content=clean_text, metadata=metadata)
@@ -414,8 +431,12 @@ class SECLoader(BaseLoader):
         text = re.sub(r"<!DOCTYPE[^>]*>", "", text)
 
         # Remove script and style blocks
-        text = re.sub(r"<script[^>]*>.*?</script>", " ", text, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r"<style[^>]*>.*?</style>", " ", text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(
+            r"<script[^>]*>.*?</script>", " ", text, flags=re.DOTALL | re.IGNORECASE
+        )
+        text = re.sub(
+            r"<style[^>]*>.*?</style>", " ", text, flags=re.DOTALL | re.IGNORECASE
+        )
 
         # Remove all HTML tags
         text = re.sub(r"<[^>]+>", " ", text)
@@ -431,7 +452,8 @@ class SECLoader(BaseLoader):
         # Remove lines that are just numbers or dashes (table artifacts)
         lines = text.split("\n")
         clean_lines = [
-            line for line in lines
+            line
+            for line in lines
             if len(line.strip()) > 10
             and not re.match(r"^[\d\s\-\.\,\$\%]+$", line.strip())
         ]

@@ -67,17 +67,17 @@ HISTORY_CANDLES = 100
 # Valid period/interval combinations (yfinance constraints)
 # period → max interval granularity
 VALID_COMBOS: dict[str, list[str]] = {
-    "1d":  ["1m", "2m", "5m", "15m", "30m", "60m"],
-    "5d":  ["1m", "2m", "5m", "15m", "30m", "60m"],
+    "1d": ["1m", "2m", "5m", "15m", "30m", "60m"],
+    "5d": ["1m", "2m", "5m", "15m", "30m", "60m"],
     "1mo": ["5m", "15m", "30m", "60m", "1d"],
     "3mo": ["15m", "30m", "60m", "1d"],
     "6mo": ["1d", "1wk"],
-    "1y":  ["1d", "1wk"],
-    "2y":  ["1d", "1wk"],
-    "5y":  ["1d", "1wk", "1mo"],
+    "1y": ["1d", "1wk"],
+    "2y": ["1d", "1wk"],
+    "5y": ["1d", "1wk", "1mo"],
 }
 
-DEFAULT_PERIOD   = "1d"
+DEFAULT_PERIOD = "1d"
 DEFAULT_INTERVAL = "1m"
 
 
@@ -85,7 +85,10 @@ DEFAULT_INTERVAL = "1m"
 # yfinance helpers
 # ---------------------------------------------------------------------------
 
-def _fetch_candles(ticker: str, period: str = "1d", interval: str = "1m") -> List[Dict[str, Any]]:
+
+def _fetch_candles(
+    ticker: str, period: str = "1d", interval: str = "1m"
+) -> List[Dict[str, Any]]:
     """Fetch OHLCV candles from yfinance.
 
     Args:
@@ -120,10 +123,10 @@ def _fetch_candles(ticker: str, period: str = "1d", interval: str = "1m") -> Lis
         for ts, row in df.iterrows():
             # ts is a pandas Timestamp
             try:
-                open_  = float(row["Open"])
-                high   = float(row["High"])
-                low    = float(row["Low"])
-                close  = float(row["Close"])
+                open_ = float(row["Open"])
+                high = float(row["High"])
+                low = float(row["Low"])
+                close = float(row["Close"])
                 volume = int(row["Volume"])
             except (KeyError, ValueError, TypeError):
                 continue
@@ -140,15 +143,17 @@ def _fetch_candles(ticker: str, period: str = "1d", interval: str = "1m") -> Lis
                 time_label = str(ts)
                 unix_ts = 0
 
-            candles.append({
-                "time":      time_label,
-                "timestamp": unix_ts,
-                "open":      round(open_,  4),
-                "high":      round(high,   4),
-                "low":       round(low,    4),
-                "close":     round(close,  4),
-                "volume":    volume,
-            })
+            candles.append(
+                {
+                    "time": time_label,
+                    "timestamp": unix_ts,
+                    "open": round(open_, 4),
+                    "high": round(high, 4),
+                    "low": round(low, 4),
+                    "close": round(close, 4),
+                    "volume": volume,
+                }
+            )
 
         return candles
 
@@ -161,16 +166,23 @@ def _sanitize(candles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Replace inf/nan with 0 for JSON serialization safety."""
     clean = []
     for c in candles:
-        clean.append({
-            k: (0 if isinstance(v, float) and (math.isnan(v) or math.isinf(v)) else v)
-            for k, v in c.items()
-        })
+        clean.append(
+            {
+                k: (
+                    0
+                    if isinstance(v, float) and (math.isnan(v) or math.isinf(v))
+                    else v
+                )
+                for k, v in c.items()
+            }
+        )
     return clean
 
 
 # ---------------------------------------------------------------------------
 # WebSocket endpoint
 # ---------------------------------------------------------------------------
+
 
 @router.websocket("/ws/{ticker}")
 async def live_chart_ws(
@@ -212,15 +224,23 @@ async def live_chart_ws(
 
     logger.info(
         "live_chart | connected | ticker=%s | period=%s | interval=%s",
-        ticker, period, interval,
+        ticker,
+        period,
+        interval,
     )
 
     # Basic ticker validation
-    if not ticker or len(ticker) > 12 or not ticker.replace(".", "").replace("-", "").isalnum():
-        await websocket.send_json({
-            "type": "error",
-            "message": f"Invalid ticker: {ticker}",
-        })
+    if (
+        not ticker
+        or len(ticker) > 12
+        or not ticker.replace(".", "").replace("-", "").isalnum()
+    ):
+        await websocket.send_json(
+            {
+                "type": "error",
+                "message": f"Invalid ticker: {ticker}",
+            }
+        )
         await websocket.close()
         return
 
@@ -238,18 +258,23 @@ async def live_chart_ws(
         # Keep last HISTORY_CANDLES candles
         history = history[-HISTORY_CANDLES:]
 
-        await websocket.send_json({
-            "type":     "history",
-            "ticker":   ticker,
-            "period":   period,
-            "interval": interval,
-            "candles":  history,
-            "count":    len(history),
-        })
+        await websocket.send_json(
+            {
+                "type": "history",
+                "ticker": ticker,
+                "period": period,
+                "interval": interval,
+                "candles": history,
+                "count": len(history),
+            }
+        )
 
         logger.info(
             "live_chart | history sent | ticker=%s | period=%s | interval=%s | candles=%d",
-            ticker, period, interval, len(history),
+            ticker,
+            period,
+            interval,
+            len(history),
         )
 
         # Track the last candle timestamp to detect new candles
@@ -270,40 +295,46 @@ async def live_chart_ws(
 
             if not latest:
                 # Market closed or fetch failed — send heartbeat
-                await websocket.send_json({
-                    "type":    "heartbeat",
-                    "ticker":  ticker,
-                    "message": "Market may be closed or data unavailable",
-                    "time":    datetime.now(timezone.utc).strftime("%H:%M:%S"),
-                })
+                await websocket.send_json(
+                    {
+                        "type": "heartbeat",
+                        "ticker": ticker,
+                        "message": "Market may be closed or data unavailable",
+                        "time": datetime.now(timezone.utc).strftime("%H:%M:%S"),
+                    }
+                )
                 continue
 
             # Get the most recent candle
             newest = latest[-1]
-            is_new_candle = (newest["timestamp"] != last_timestamp)
+            is_new_candle = newest["timestamp"] != last_timestamp
 
             if is_new_candle:
                 last_timestamp = newest["timestamp"]
 
-            await websocket.send_json({
-                "type":          "candle",
-                "ticker":        ticker,
-                "period":        period,
-                "interval":      interval,
-                "time":          newest["time"],
-                "timestamp":     newest["timestamp"],
-                "open":          newest["open"],
-                "high":          newest["high"],
-                "low":           newest["low"],
-                "close":         newest["close"],
-                "volume":        newest["volume"],
-                "is_new_candle": is_new_candle,
-                "server_time":   datetime.now(timezone.utc).strftime("%H:%M:%S UTC"),
-            })
+            await websocket.send_json(
+                {
+                    "type": "candle",
+                    "ticker": ticker,
+                    "period": period,
+                    "interval": interval,
+                    "time": newest["time"],
+                    "timestamp": newest["timestamp"],
+                    "open": newest["open"],
+                    "high": newest["high"],
+                    "low": newest["low"],
+                    "close": newest["close"],
+                    "volume": newest["volume"],
+                    "is_new_candle": is_new_candle,
+                    "server_time": datetime.now(timezone.utc).strftime("%H:%M:%S UTC"),
+                }
+            )
 
             logger.debug(
                 "live_chart | pushed | ticker=%s | close=%.2f | new=%s",
-                ticker, newest["close"], is_new_candle,
+                ticker,
+                newest["close"],
+                is_new_candle,
             )
 
     except WebSocketDisconnect:
@@ -311,9 +342,11 @@ async def live_chart_ws(
     except Exception as e:
         logger.error("live_chart | error | ticker=%s | %s", ticker, e, exc_info=True)
         try:
-            await websocket.send_json({
-                "type":    "error",
-                "message": f"Stream error: {e}",
-            })
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "message": f"Stream error: {e}",
+                }
+            )
         except Exception:
             pass

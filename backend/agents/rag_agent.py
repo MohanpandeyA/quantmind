@@ -100,16 +100,21 @@ async def rag_agent(state: TradingState) -> TradingState:
         # Check if ticker has documents — ingest if not
         stats = store.get_stats()  # type: ignore[union-attr]
         if stats.get("total_chunks", 0) == 0:
-            logger.info("RAGAgent | empty store — triggering ingestion | ticker=%s", ticker)
+            logger.info(
+                "RAGAgent | empty store — triggering ingestion | ticker=%s", ticker
+            )
             report = await pipeline.ingest_ticker(ticker)
             logger.info(
                 "RAGAgent | ingestion complete | ticker=%s | chunks=%d",
-                ticker, report.chunks_stored,
+                ticker,
+                report.chunks_stored,
             )
         else:
             # Check if this specific ticker has documents
             ticker_results = store.search(  # type: ignore[union-attr]
-                query_vector=__import__("numpy").zeros(retriever.embedding_model.dimensions),
+                query_vector=__import__("numpy").zeros(
+                    retriever.embedding_model.dimensions
+                ),
                 n_results=1,
                 ticker=ticker,
             )
@@ -120,7 +125,8 @@ async def rag_agent(state: TradingState) -> TradingState:
                 report = await pipeline.ingest_ticker(ticker)
                 logger.info(
                     "RAGAgent | ingestion complete | ticker=%s | chunks=%d",
-                    ticker, report.chunks_stored,
+                    ticker,
+                    report.chunks_stored,
                 )
 
         # Retrieve relevant documents
@@ -132,9 +138,7 @@ async def rag_agent(state: TradingState) -> TradingState:
         )
 
         if not results:
-            logger.warning(
-                "RAGAgent | no documents found | ticker=%s", ticker
-            )
+            logger.warning("RAGAgent | no documents found | ticker=%s", ticker)
             return {
                 **state,
                 "retrieved_docs": [],
@@ -149,7 +153,9 @@ async def rag_agent(state: TradingState) -> TradingState:
 
         logger.info(
             "RAGAgent | complete | ticker=%s | docs=%d | context_chars=%d",
-            ticker, len(results), len(rag_context),
+            ticker,
+            len(results),
+            len(rag_context),
         )
 
         return {

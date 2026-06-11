@@ -246,9 +246,7 @@ def compute_returns(prices: NumericSequence) -> np.ndarray:
     """
     arr = np.asarray(prices, dtype=float)
     if len(arr) < 2:
-        raise ValueError(
-            f"prices must have at least 2 elements, got {len(arr)}."
-        )
+        raise ValueError(f"prices must have at least 2 elements, got {len(arr)}.")
     returns = np.diff(arr) / arr[:-1]
     logger.debug("compute_returns | n_prices=%d | n_returns=%d", len(arr), len(returns))
     return returns
@@ -274,9 +272,7 @@ def compute_log_returns(prices: NumericSequence) -> np.ndarray:
     """
     arr = np.asarray(prices, dtype=float)
     if len(arr) < 2:
-        raise ValueError(
-            f"prices must have at least 2 elements, got {len(arr)}."
-        )
+        raise ValueError(f"prices must have at least 2 elements, got {len(arr)}.")
     if np.any(arr <= 0):
         raise ValueError("All prices must be positive for log returns.")
 
@@ -290,6 +286,7 @@ def compute_log_returns(prices: NumericSequence) -> np.ndarray:
 # ------------------------------------------------------------------
 # Internal helpers
 # ------------------------------------------------------------------
+
 
 def _validate_window(values: NumericSequence, window: int) -> None:
     """Validate that window size is valid for the given data.

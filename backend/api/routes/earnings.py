@@ -76,11 +76,12 @@ def _fetch_earnings_sync(ticker: str) -> Dict[str, Any]:
         Earnings data dict.
     """
     import warnings
+
     warnings.filterwarnings("ignore")
 
     try:
-        import yfinance as yf
         import pandas as pd
+        import yfinance as yf
 
         stock = yf.Ticker(ticker)
 
@@ -91,7 +92,9 @@ def _fetch_earnings_sync(ticker: str) -> Dict[str, Any]:
 
         try:
             calendar = stock.calendar
-            if calendar is not None and not (isinstance(calendar, dict) and not calendar):
+            if calendar is not None and not (
+                isinstance(calendar, dict) and not calendar
+            ):
                 if isinstance(calendar, dict):
                     # Newer yfinance returns dict
                     earnings_date = calendar.get("Earnings Date")
@@ -105,7 +108,9 @@ def _fetch_earnings_sync(ticker: str) -> Dict[str, Any]:
                 elif hasattr(calendar, "loc"):
                     # Older yfinance returns DataFrame
                     if "Earnings Date" in calendar.index:
-                        next_earnings = pd.Timestamp(calendar.loc["Earnings Date"].iloc[0])
+                        next_earnings = pd.Timestamp(
+                            calendar.loc["Earnings Date"].iloc[0]
+                        )
         except Exception as e:
             logger.debug("Calendar fetch failed for %s: %s", ticker, e)
 
@@ -114,7 +119,9 @@ def _fetch_earnings_sync(ticker: str) -> Dict[str, Any]:
             try:
                 earnings_dates = stock.earnings_dates
                 if earnings_dates is not None and not earnings_dates.empty:
-                    future_dates = earnings_dates[earnings_dates.index > pd.Timestamp.now()]
+                    future_dates = earnings_dates[
+                        earnings_dates.index > pd.Timestamp.now()
+                    ]
                     if not future_dates.empty:
                         next_earnings = future_dates.index[0]
             except Exception as e:
@@ -133,7 +140,9 @@ def _fetch_earnings_sync(ticker: str) -> Dict[str, Any]:
                 emoji = "📅"
             elif days_until == 0:
                 warning_level = "today"
-                message = f"🚨 EARNINGS TODAY — Do not trade based on pre-earnings analysis!"
+                message = (
+                    f"🚨 EARNINGS TODAY — Do not trade based on pre-earnings analysis!"
+                )
                 emoji = "🚨"
             elif days_until <= 3:
                 warning_level = "critical"
@@ -155,8 +164,16 @@ def _fetch_earnings_sync(ticker: str) -> Dict[str, Any]:
                 "warning_level": warning_level,
                 "message": message,
                 "emoji": emoji,
-                "eps_estimate": float(eps_estimate) if eps_estimate and str(eps_estimate) != "nan" else None,
-                "revenue_estimate": float(revenue_estimate) if revenue_estimate and str(revenue_estimate) != "nan" else None,
+                "eps_estimate": (
+                    float(eps_estimate)
+                    if eps_estimate and str(eps_estimate) != "nan"
+                    else None
+                ),
+                "revenue_estimate": (
+                    float(revenue_estimate)
+                    if revenue_estimate and str(revenue_estimate) != "nan"
+                    else None
+                ),
                 "has_upcoming_earnings": 0 <= days_until <= 30,
             }
 
@@ -193,7 +210,9 @@ def _fetch_earnings_sync(ticker: str) -> Dict[str, Any]:
     summary="Get earnings calendar for multiple tickers",
     description="Returns upcoming earnings dates for a list of tickers.",
 )
-async def get_earnings_calendar(tickers: str = "AAPL,MSFT,GOOGL,NVDA,TSLA,JPM,AMZN,META") -> Dict[str, Any]:
+async def get_earnings_calendar(
+    tickers: str = "AAPL,MSFT,GOOGL,NVDA,TSLA,JPM,AMZN,META",
+) -> Dict[str, Any]:
     """Get earnings calendar for multiple tickers.
 
     Args:
@@ -226,7 +245,9 @@ async def get_earnings_calendar(tickers: str = "AAPL,MSFT,GOOGL,NVDA,TSLA,JPM,AM
         "calendar": calendar,
         "total": len(calendar),
         "upcoming_within_7_days": [
-            c for c in calendar
-            if c.get("days_until_earnings") is not None and 0 <= c["days_until_earnings"] <= 7
+            c
+            for c in calendar
+            if c.get("days_until_earnings") is not None
+            and 0 <= c["days_until_earnings"] <= 7
         ],
     }

@@ -75,7 +75,12 @@ async def risk_agent(state: TradingState) -> TradingState:
     logger.info(
         "RiskAgent | evaluating | ticker=%s | sharpe=%.2f | mdd=%.1f%% | "
         "var=%.2f%% | win_rate=%.1f%% | retry=%d",
-        ticker, sharpe, max_dd * 100, var_95 * 100, win_rate * 100, retry_count,
+        ticker,
+        sharpe,
+        max_dd * 100,
+        var_95 * 100,
+        win_rate * 100,
+        retry_count,
     )
 
     # Compute composite risk score (0-10, lower = safer)
@@ -113,7 +118,8 @@ async def risk_agent(state: TradingState) -> TradingState:
             logger.warning(
                 "RiskAgent | max retries reached | approving with warning | "
                 "ticker=%s | violations=%s",
-                ticker, violations,
+                ticker,
+                violations,
             )
             risk_metrics["risk_approved"] = True
             risk_metrics["rejection_reason"] = (
@@ -130,7 +136,9 @@ async def risk_agent(state: TradingState) -> TradingState:
             # Reject and trigger retry
             logger.warning(
                 "RiskAgent | rejected | ticker=%s | retry=%d | violations=%s",
-                ticker, retry_count + 1, violations,
+                ticker,
+                retry_count + 1,
+                violations,
             )
             return {
                 **state,
@@ -142,7 +150,11 @@ async def risk_agent(state: TradingState) -> TradingState:
         logger.info(
             "RiskAgent | approved | ticker=%s | score=%.1f | level=%s | "
             "sharpe=%.2f | mdd=%.1f%%",
-            ticker, risk_score, risk_level, sharpe, max_dd * 100,
+            ticker,
+            risk_score,
+            risk_level,
+            sharpe,
+            max_dd * 100,
         )
         return {
             **state,
@@ -176,17 +188,12 @@ def _compute_risk_score(
     """
     # Normalize each metric to 0-10 scale
     sharpe_score = max(0.0, min(10.0, (2.0 - sharpe) * 5))  # Sharpe 2+ = 0 risk
-    dd_score = min(10.0, max_dd * 40)                         # 25% dd = 10 risk
-    var_score = min(10.0, var_95 * 200)                       # 5% VaR = 10 risk
-    win_score = max(0.0, min(10.0, (0.5 - win_rate) * 20))   # 50%+ win = 0 risk
+    dd_score = min(10.0, max_dd * 40)  # 25% dd = 10 risk
+    var_score = min(10.0, var_95 * 200)  # 5% VaR = 10 risk
+    win_score = max(0.0, min(10.0, (0.5 - win_rate) * 20))  # 50%+ win = 0 risk
 
     # Weighted composite
-    return (
-        0.30 * sharpe_score
-        + 0.40 * dd_score
-        + 0.20 * var_score
-        + 0.10 * win_score
-    )
+    return 0.30 * sharpe_score + 0.40 * dd_score + 0.20 * var_score + 0.10 * win_score
 
 
 def _get_risk_level(risk_score: float) -> str:

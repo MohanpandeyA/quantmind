@@ -9,15 +9,15 @@ Tests cover:
 - build_price_trees() helper function
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from engine.segment_tree import AggregationType, SegmentTree, build_price_trees
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def sample_prices() -> list[float]:
@@ -44,18 +44,25 @@ def sum_tree(sample_prices: list[float]) -> SegmentTree:
 # Construction tests
 # ---------------------------------------------------------------------------
 
+
 class TestSegmentTreeConstruction:
     """Tests for SegmentTree initialization and build."""
 
-    def test_build_max_tree_stores_correct_size(self, sample_prices: list[float]) -> None:
+    def test_build_max_tree_stores_correct_size(
+        self, sample_prices: list[float]
+    ) -> None:
         st = SegmentTree(sample_prices, AggregationType.MAX)
         assert st.n == len(sample_prices)
 
-    def test_build_min_tree_stores_correct_size(self, sample_prices: list[float]) -> None:
+    def test_build_min_tree_stores_correct_size(
+        self, sample_prices: list[float]
+    ) -> None:
         st = SegmentTree(sample_prices, AggregationType.MIN)
         assert st.n == len(sample_prices)
 
-    def test_build_sum_tree_stores_correct_size(self, sample_prices: list[float]) -> None:
+    def test_build_sum_tree_stores_correct_size(
+        self, sample_prices: list[float]
+    ) -> None:
         st = SegmentTree(sample_prices, AggregationType.SUM)
         assert st.n == len(sample_prices)
 
@@ -82,6 +89,7 @@ class TestSegmentTreeConstruction:
 # ---------------------------------------------------------------------------
 # MAX tree query tests
 # ---------------------------------------------------------------------------
+
 
 class TestMaxTreeQueries:
     """Tests for range maximum queries."""
@@ -118,6 +126,7 @@ class TestMaxTreeQueries:
 # MIN tree query tests
 # ---------------------------------------------------------------------------
 
+
 class TestMinTreeQueries:
     """Tests for range minimum queries."""
 
@@ -149,6 +158,7 @@ class TestMinTreeQueries:
 # SUM tree query tests
 # ---------------------------------------------------------------------------
 
+
 class TestSumTreeQueries:
     """Tests for range sum queries."""
 
@@ -171,6 +181,7 @@ class TestSumTreeQueries:
 # ---------------------------------------------------------------------------
 # Update tests
 # ---------------------------------------------------------------------------
+
 
 class TestSegmentTreeUpdate:
     """Tests for point updates."""
@@ -217,6 +228,7 @@ class TestSegmentTreeUpdate:
 # Range validation tests
 # ---------------------------------------------------------------------------
 
+
 class TestRangeValidation:
     """Tests for invalid range handling."""
 
@@ -240,6 +252,7 @@ class TestRangeValidation:
 # ---------------------------------------------------------------------------
 # Edge case tests
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeCases:
     """Tests for edge cases and special inputs."""
@@ -288,6 +301,7 @@ class TestEdgeCases:
 # build_price_trees helper tests
 # ---------------------------------------------------------------------------
 
+
 class TestBuildPriceTrees:
     """Tests for the build_price_trees() convenience function."""
 
@@ -321,7 +335,7 @@ class TestBuildPriceTrees:
     def test_resistance_level_detection(self) -> None:
         """Simulate finding resistance in a 5-day window."""
         highs = [100.0, 102.0, 105.0, 103.0, 101.0, 108.0, 106.0]
-        lows  = [98.0,  99.0,  101.0, 100.0, 99.0,  104.0, 103.0]
+        lows = [98.0, 99.0, 101.0, 100.0, 99.0, 104.0, 103.0]
         max_tree, min_tree = build_price_trees(highs, lows)
 
         # Resistance in last 5 days (indices 2-6)

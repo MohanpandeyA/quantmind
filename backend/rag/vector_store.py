@@ -95,7 +95,9 @@ class VectorStore:
 
         try:
             import chromadb  # type: ignore[import]
-            from chromadb.config import Settings as ChromaSettings  # type: ignore[import]
+            from chromadb.config import (
+                Settings as ChromaSettings,  # type: ignore[import]
+            )
         except ImportError:
             logger.error(
                 "VectorStore | chromadb not installed. Run: pip install chromadb"
@@ -159,8 +161,8 @@ class VectorStore:
 
         # Process in batches
         for i in range(0, len(chunks), UPSERT_BATCH_SIZE):
-            batch_chunks = chunks[i: i + UPSERT_BATCH_SIZE]
-            batch_vectors = vectors[i: i + UPSERT_BATCH_SIZE]
+            batch_chunks = chunks[i : i + UPSERT_BATCH_SIZE]
+            batch_vectors = vectors[i : i + UPSERT_BATCH_SIZE]
 
             ids = [chunk.chunk_id for chunk in batch_chunks]
             documents = [chunk.content for chunk in batch_chunks]
@@ -177,7 +179,9 @@ class VectorStore:
                 total_stored += len(batch_chunks)
             except Exception as e:
                 logger.error(
-                    "VectorStore | upsert failed | batch=%d | %s", i // UPSERT_BATCH_SIZE, e
+                    "VectorStore | upsert failed | batch=%d | %s",
+                    i // UPSERT_BATCH_SIZE,
+                    e,
                 )
 
         logger.info(
@@ -232,7 +236,9 @@ class VectorStore:
             return []
 
         # Build metadata filter
-        filter_clause = where or self._build_filter(ticker, doc_types, date_from, date_to)
+        filter_clause = where or self._build_filter(
+            ticker, doc_types, date_from, date_to
+        )
 
         query_kwargs: Dict[str, Any] = {
             "query_embeddings": [query_vector.tolist()],
@@ -260,16 +266,19 @@ class VectorStore:
             # Convert to similarity score: 1 = identical, -1 = opposite
             score = 1.0 - (dist / 2.0)
 
-            search_results.append(SearchResult(
-                content=doc,
-                metadata=DocumentMetadata.from_chroma_dict(meta),
-                score=score,
-                distance=dist,
-            ))
+            search_results.append(
+                SearchResult(
+                    content=doc,
+                    metadata=DocumentMetadata.from_chroma_dict(meta),
+                    score=score,
+                    distance=dist,
+                )
+            )
 
         logger.debug(
             "VectorStore | search | ticker=%s | n_results=%d | top_score=%.3f",
-            ticker, len(search_results),
+            ticker,
+            len(search_results),
             search_results[0].score if search_results else 0.0,
         )
         return search_results
@@ -299,7 +308,8 @@ class VectorStore:
                 collection.delete(ids=ids_to_delete)  # type: ignore[union-attr]
                 logger.info(
                     "VectorStore | deleted | ticker=%s | chunks=%d",
-                    ticker, len(ids_to_delete),
+                    ticker,
+                    len(ids_to_delete),
                 )
             return len(ids_to_delete)
 

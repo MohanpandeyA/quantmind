@@ -490,6 +490,7 @@ def compute_full_report(
 # Internal helpers
 # ------------------------------------------------------------------
 
+
 def _validate_confidence(confidence: float) -> None:
     """Validate confidence level is in (0, 1).
 
@@ -500,6 +501,4 @@ def _validate_confidence(confidence: float) -> None:
         ValueError: If confidence is not in (0, 1).
     """
     if not (0 < confidence < 1):
-        raise ValueError(
-            f"confidence must be in (0, 1), got {confidence}."
-        )
+        raise ValueError(f"confidence must be in (0, 1), got {confidence}.")

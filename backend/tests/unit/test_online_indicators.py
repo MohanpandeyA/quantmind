@@ -14,24 +14,24 @@ from __future__ import annotations
 
 import math
 
-import pytest
 import numpy as np
+import pytest
 
 from engine.online_indicators import (
     IncrementalMetrics,
     OnlineEMA,
-    OnlineRollingStats,
     OnlineRollingSharpe,
+    OnlineRollingStats,
     OnlineZScore,
 )
 from engine.strategies.base_strategy import Signal, StrategyConfig
-from engine.strategies.momentum import MomentumStrategy
 from engine.strategies.mean_reversion import MeanReversionStrategy
-
+from engine.strategies.momentum import MomentumStrategy
 
 # ---------------------------------------------------------------------------
 # OnlineEMA tests
 # ---------------------------------------------------------------------------
+
 
 class TestOnlineEMA:
     """Tests for incremental Exponential Moving Average."""
@@ -114,6 +114,7 @@ class TestOnlineEMA:
 # OnlineRollingStats tests
 # ---------------------------------------------------------------------------
 
+
 class TestOnlineRollingStats:
     """Tests for Welford's rolling mean and std."""
 
@@ -163,8 +164,8 @@ class TestOnlineRollingStats:
 
         # Compare last 100 values (after warmup)
         for i in range(window, len(data)):
-            expected_mean = np.mean(data[i - window + 1: i + 1])
-            expected_std = np.std(data[i - window + 1: i + 1], ddof=1)
+            expected_mean = np.mean(data[i - window + 1 : i + 1])
+            expected_std = np.std(data[i - window + 1 : i + 1], ddof=1)
             assert online_means[i] == pytest.approx(expected_mean, rel=1e-6)
             assert online_stds[i] == pytest.approx(expected_std, rel=1e-4)
 
@@ -204,6 +205,7 @@ class TestOnlineRollingStats:
 # ---------------------------------------------------------------------------
 # OnlineZScore tests
 # ---------------------------------------------------------------------------
+
 
 class TestOnlineZScore:
     """Tests for incremental z-score."""
@@ -277,6 +279,7 @@ class TestOnlineZScore:
 # OnlineRollingSharpe tests
 # ---------------------------------------------------------------------------
 
+
 class TestOnlineRollingSharpe:
     """Tests for incremental rolling Sharpe ratio."""
 
@@ -324,6 +327,7 @@ class TestOnlineRollingSharpe:
 # ---------------------------------------------------------------------------
 # IncrementalMetrics tests
 # ---------------------------------------------------------------------------
+
 
 class TestIncrementalMetrics:
     """Tests for real-time portfolio risk monitoring."""
@@ -375,8 +379,12 @@ class TestIncrementalMetrics:
         metrics.update(100_000.0, 0.001)
         summary = metrics.get_summary()
         expected_keys = {
-            "total_return", "current_drawdown", "current_sharpe",
-            "peak_equity", "current_equity", "n_updates",
+            "total_return",
+            "current_drawdown",
+            "current_sharpe",
+            "peak_equity",
+            "current_equity",
+            "n_updates",
         }
         assert expected_keys.issubset(set(summary.keys()))
 
@@ -393,6 +401,7 @@ class TestIncrementalMetrics:
 # ---------------------------------------------------------------------------
 # Live trading integration: MomentumStrategy.get_latest_signal()
 # ---------------------------------------------------------------------------
+
 
 class TestMomentumLiveSignals:
     """Tests for MomentumStrategy online signal generation."""
@@ -441,8 +450,9 @@ class TestMomentumLiveSignals:
 
     def test_consistent_with_batch_signals(self) -> None:
         """Online signals should be consistent with batch signals on same data."""
-        import pandas as pd
         from datetime import datetime, timedelta
+
+        import pandas as pd
 
         np.random.seed(42)
         n = 200
@@ -453,7 +463,13 @@ class TestMomentumLiveSignals:
         lows = prices * 0.995
         volumes = np.full(n, 1_000_000.0)
         df = pd.DataFrame(
-            {"open": opens, "high": highs, "low": lows, "close": prices, "volume": volumes},
+            {
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "close": prices,
+                "volume": volumes,
+            },
             index=dates,
         )
 
@@ -480,6 +496,7 @@ class TestMomentumLiveSignals:
 # ---------------------------------------------------------------------------
 # Live trading integration: MeanReversionStrategy.get_latest_signal()
 # ---------------------------------------------------------------------------
+
 
 class TestMeanReversionLiveSignals:
     """Tests for MeanReversionStrategy online signal generation."""
@@ -540,7 +557,9 @@ class TestMeanReversionLiveSignals:
     def test_exit_long_when_price_reverts(self) -> None:
         """After BUY, should SELL when price returns to mean."""
         strategy = MeanReversionStrategy(
-            StrategyConfig(params={"window": 10, "z_threshold": 1.5, "exit_threshold": 0.0})
+            StrategyConfig(
+                params={"window": 10, "z_threshold": 1.5, "exit_threshold": 0.0}
+            )
         )
         # Warm up
         for _ in range(10):

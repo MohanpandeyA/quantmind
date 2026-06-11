@@ -19,8 +19,8 @@ LangGraph node contract:
 
 from __future__ import annotations
 
-import ssl
 import os
+import ssl
 from typing import Any, Dict, List
 
 import numpy as np
@@ -42,8 +42,8 @@ def _patch_yfinance_ssl() -> None:
     requests library instead.
     """
     try:
-        import yfinance as yf
         import requests
+        import yfinance as yf
         from requests.adapters import HTTPAdapter
         from urllib3.util.retry import Retry
 
@@ -52,6 +52,7 @@ def _patch_yfinance_ssl() -> None:
 
         # Suppress InsecureRequestWarning
         import urllib3
+
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Retry strategy
@@ -132,18 +133,23 @@ async def research_agent(state: TradingState) -> TradingState:
         # Build price history for charting (last 252 trading days)
         price_history: List[Dict[str, Any]] = []
         for date, row in hist.tail(252).iterrows():
-            price_history.append({
-                "date": str(date.date()),
-                "open": round(float(row["Open"]), 2),
-                "high": round(float(row["High"]), 2),
-                "low": round(float(row["Low"]), 2),
-                "close": round(float(row["Close"]), 2),
-                "volume": int(row["Volume"]),
-            })
+            price_history.append(
+                {
+                    "date": str(date.date()),
+                    "open": round(float(row["Open"]), 2),
+                    "high": round(float(row["High"]), 2),
+                    "low": round(float(row["Low"]), 2),
+                    "close": round(float(row["Close"]), 2),
+                    "volume": int(row["Volume"]),
+                }
+            )
 
         logger.info(
             "ResearchAgent | complete | ticker=%s | price=%.2f | change=%.2f%% | bars=%d",
-            ticker, current_price, price_change_pct, len(price_history),
+            ticker,
+            current_price,
+            price_change_pct,
+            len(price_history),
         )
 
         return {
@@ -153,5 +159,7 @@ async def research_agent(state: TradingState) -> TradingState:
         }
 
     except Exception as e:
-        logger.error("ResearchAgent | failed | ticker=%s | %s", ticker, e, exc_info=True)
+        logger.error(
+            "ResearchAgent | failed | ticker=%s | %s", ticker, e, exc_info=True
+        )
         return {**state, "error": f"ResearchAgent failed: {e}"}

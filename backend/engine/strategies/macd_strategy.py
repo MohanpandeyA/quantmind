@@ -47,9 +47,9 @@ from engine.strategies.base_strategy import BaseStrategy, Signal, StrategyConfig
 logger = get_logger(__name__)
 
 # Default hyperparameters (industry standard — Appel's original values)
-DEFAULT_FAST = 12           # Fast EMA period
-DEFAULT_SLOW = 26           # Slow EMA period
-DEFAULT_SIGNAL_PERIOD = 9   # Signal line EMA period
+DEFAULT_FAST = 12  # Fast EMA period
+DEFAULT_SLOW = 26  # Slow EMA period
+DEFAULT_SIGNAL_PERIOD = 9  # Signal line EMA period
 
 
 class MACDStrategy(BaseStrategy):
@@ -90,7 +90,9 @@ class MACDStrategy(BaseStrategy):
         params = resolved_config.params
         self.fast: int = int(params.get("fast", DEFAULT_FAST))
         self.slow: int = int(params.get("slow", DEFAULT_SLOW))
-        self.signal_period: int = int(params.get("signal_period", DEFAULT_SIGNAL_PERIOD))
+        self.signal_period: int = int(
+            params.get("signal_period", DEFAULT_SIGNAL_PERIOD)
+        )
 
         # EMA smoothing factors
         self._alpha_fast: float = 2.0 / (self.fast + 1)
@@ -121,7 +123,9 @@ class MACDStrategy(BaseStrategy):
         if self.fast < 2:
             raise ValueError(f"MACD fast period must be >= 2, got {self.fast}")
         if self.signal_period < 2:
-            raise ValueError(f"MACD signal period must be >= 2, got {self.signal_period}")
+            raise ValueError(
+                f"MACD signal period must be >= 2, got {self.signal_period}"
+            )
 
     @staticmethod
     def _compute_ema(values: np.ndarray, period: int) -> np.ndarray:
@@ -165,7 +169,9 @@ class MACDStrategy(BaseStrategy):
         if n < min_bars:
             logger.warning(
                 "%s | insufficient data | n=%d < min_bars=%d",
-                self.get_name(), n, min_bars,
+                self.get_name(),
+                n,
+                min_bars,
             )
             return signals
 
@@ -196,7 +202,10 @@ class MACDStrategy(BaseStrategy):
         sells = int(np.sum(signals == -1))
         logger.info(
             "%s | signals generated | n=%d | buys=%d | sells=%d",
-            self.get_name(), n, buys, sells,
+            self.get_name(),
+            n,
+            buys,
+            sells,
         )
         return signals
 
@@ -220,7 +229,7 @@ class MACDStrategy(BaseStrategy):
             if self._n_ticks == self.slow:
                 # Initialize EMAs with SMA of warmup prices
                 prices_arr = np.array(self._warmup_prices)
-                self._ema_fast = float(np.mean(prices_arr[-self.fast:]))
+                self._ema_fast = float(np.mean(prices_arr[-self.fast :]))
                 self._ema_slow = float(np.mean(prices_arr))
                 macd = self._ema_fast - self._ema_slow
                 self._macd_signal = macd
@@ -229,8 +238,12 @@ class MACDStrategy(BaseStrategy):
             return Signal.HOLD
 
         # Update fast and slow EMAs (O(1))
-        self._ema_fast = self._alpha_fast * price + (1.0 - self._alpha_fast) * self._ema_fast
-        self._ema_slow = self._alpha_slow * price + (1.0 - self._alpha_slow) * self._ema_slow
+        self._ema_fast = (
+            self._alpha_fast * price + (1.0 - self._alpha_fast) * self._ema_fast
+        )
+        self._ema_slow = (
+            self._alpha_slow * price + (1.0 - self._alpha_slow) * self._ema_slow
+        )
 
         # Compute MACD line
         macd = self._ema_fast - self._ema_slow

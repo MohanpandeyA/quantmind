@@ -48,6 +48,7 @@ _portfolio: List[Dict[str, Any]] = []
 # Request/Response schemas
 # ---------------------------------------------------------------------------
 
+
 class AddPositionRequest(BaseModel):
     """Request to add a position to the portfolio.
 
@@ -89,11 +90,11 @@ class PositionPerformance(BaseModel):
     entry_date: str
     notes: str
     current_price: float
-    price_change_pct: float       # Today's % change
-    cost_basis: float             # shares × entry_price
-    current_value: float          # shares × current_price
-    unrealized_pnl: float         # current_value - cost_basis
-    unrealized_pnl_pct: float     # unrealized_pnl / cost_basis × 100
+    price_change_pct: float  # Today's % change
+    cost_basis: float  # shares × entry_price
+    current_value: float  # shares × current_price
+    unrealized_pnl: float  # current_value - cost_basis
+    unrealized_pnl_pct: float  # unrealized_pnl / cost_basis × 100
     week_52_high: float
     week_52_low: float
 
@@ -106,7 +107,7 @@ class PortfolioPerformanceResponse(BaseModel):
     total_current_value: float
     total_unrealized_pnl: float
     total_unrealized_pnl_pct: float
-    best_performer: Optional[str]   # Ticker with highest unrealized_pnl_pct
+    best_performer: Optional[str]  # Ticker with highest unrealized_pnl_pct
     worst_performer: Optional[str]  # Ticker with lowest unrealized_pnl_pct
     position_count: int
     last_updated: str
@@ -115,6 +116,7 @@ class PortfolioPerformanceResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
 
 @router.get(
     "/performance",
@@ -164,23 +166,27 @@ async def get_portfolio_performance() -> PortfolioPerformanceResponse:
         cost_basis = pos["shares"] * pos["entry_price"]
         current_value = pos["shares"] * current_price
         unrealized_pnl = current_value - cost_basis
-        unrealized_pnl_pct = (unrealized_pnl / cost_basis * 100) if cost_basis > 0 else 0.0
+        unrealized_pnl_pct = (
+            (unrealized_pnl / cost_basis * 100) if cost_basis > 0 else 0.0
+        )
 
-        positions.append(PositionPerformance(
-            ticker=ticker,
-            shares=pos["shares"],
-            entry_price=pos["entry_price"],
-            entry_date=pos["entry_date"],
-            notes=pos.get("notes", ""),
-            current_price=round(current_price, 2),
-            price_change_pct=round(price_change_pct, 2),
-            cost_basis=round(cost_basis, 2),
-            current_value=round(current_value, 2),
-            unrealized_pnl=round(unrealized_pnl, 2),
-            unrealized_pnl_pct=round(unrealized_pnl_pct, 2),
-            week_52_high=round(week_52_high, 2),
-            week_52_low=round(week_52_low, 2),
-        ))
+        positions.append(
+            PositionPerformance(
+                ticker=ticker,
+                shares=pos["shares"],
+                entry_price=pos["entry_price"],
+                entry_date=pos["entry_date"],
+                notes=pos.get("notes", ""),
+                current_price=round(current_price, 2),
+                price_change_pct=round(price_change_pct, 2),
+                cost_basis=round(cost_basis, 2),
+                current_value=round(current_value, 2),
+                unrealized_pnl=round(unrealized_pnl, 2),
+                unrealized_pnl_pct=round(unrealized_pnl_pct, 2),
+                week_52_high=round(week_52_high, 2),
+                week_52_low=round(week_52_low, 2),
+            )
+        )
 
     # Portfolio totals
     total_cost = sum(p.cost_basis for p in positions)
@@ -189,12 +195,18 @@ async def get_portfolio_performance() -> PortfolioPerformanceResponse:
     total_pnl_pct = (total_pnl / total_cost * 100) if total_cost > 0 else 0.0
 
     # Best/worst performers
-    best = max(positions, key=lambda p: p.unrealized_pnl_pct).ticker if positions else None
-    worst = min(positions, key=lambda p: p.unrealized_pnl_pct).ticker if positions else None
+    best = (
+        max(positions, key=lambda p: p.unrealized_pnl_pct).ticker if positions else None
+    )
+    worst = (
+        min(positions, key=lambda p: p.unrealized_pnl_pct).ticker if positions else None
+    )
 
     logger.info(
         "Portfolio performance | positions=%d | total_value=%.2f | pnl=%.2f%%",
-        len(positions), total_value, total_pnl_pct,
+        len(positions),
+        total_value,
+        total_pnl_pct,
     )
 
     return PortfolioPerformanceResponse(
@@ -230,15 +242,17 @@ async def add_position(request: AddPositionRequest) -> Dict[str, Any]:
             # Average down/up: recalculate average entry price
             total_shares = pos["shares"] + request.shares
             avg_price = (
-                (pos["shares"] * pos["entry_price"] + request.shares * request.entry_price)
-                / total_shares
-            )
+                pos["shares"] * pos["entry_price"]
+                + request.shares * request.entry_price
+            ) / total_shares
             pos["shares"] = total_shares
             pos["entry_price"] = round(avg_price, 4)
             pos["notes"] = request.notes or pos["notes"]
             logger.info(
                 "Portfolio | position updated | ticker=%s | shares=%.2f | avg_price=%.2f",
-                request.ticker, total_shares, avg_price,
+                request.ticker,
+                total_shares,
+                avg_price,
             )
             return {
                 "message": f"Position updated (averaged) | {request.ticker}",
@@ -258,7 +272,10 @@ async def add_position(request: AddPositionRequest) -> Dict[str, Any]:
 
     logger.info(
         "Portfolio | position added | ticker=%s | shares=%.2f | entry=%.2f | cost=%.2f",
-        request.ticker, request.shares, request.entry_price, position["cost_basis"],
+        request.ticker,
+        request.shares,
+        request.entry_price,
+        position["cost_basis"],
     )
 
     return {
@@ -322,6 +339,7 @@ async def list_positions() -> Dict[str, Any]:
 # Helper: batch price fetching
 # ---------------------------------------------------------------------------
 
+
 async def _fetch_current_prices(tickers: List[str]) -> Dict[str, Dict[str, float]]:
     """Fetch current prices for multiple tickers in one yfinance call.
 
@@ -342,6 +360,7 @@ async def _fetch_current_prices(tickers: List[str]) -> Dict[str, Dict[str, float
     """
     import asyncio
     import warnings
+
     warnings.filterwarnings("ignore")
 
     loop = asyncio.get_event_loop()
@@ -358,6 +377,7 @@ def _fetch_prices_sync(tickers: List[str]) -> Dict[str, Dict[str, float]]:
         Price data dict.
     """
     import warnings
+
     warnings.filterwarnings("ignore")
 
     try:
@@ -380,15 +400,21 @@ def _fetch_prices_sync(tickers: List[str]) -> Dict[str, Dict[str, float]]:
                 if len(tickers) == 1:
                     hist = data
                 else:
-                    hist = data[ticker] if ticker in data.columns.get_level_values(0) else data
+                    hist = (
+                        data[ticker]
+                        if ticker in data.columns.get_level_values(0)
+                        else data
+                    )
 
                 if hist.empty:
                     continue
 
                 # Handle MultiIndex columns from yfinance 1.x
                 if hasattr(hist.columns, "levels"):
-                    hist.columns = [c[0].lower() if isinstance(c, tuple) else c.lower()
-                                    for c in hist.columns]
+                    hist.columns = [
+                        c[0].lower() if isinstance(c, tuple) else c.lower()
+                        for c in hist.columns
+                    ]
                 else:
                     hist.columns = [c.lower() for c in hist.columns]
 

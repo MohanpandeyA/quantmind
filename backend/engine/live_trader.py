@@ -50,6 +50,7 @@ logger = get_logger(__name__)
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class LiveBar:
     """A single OHLCV bar received from the live data feed.
@@ -123,6 +124,7 @@ class LiveTraderConfig:
 # LiveTrader
 # ---------------------------------------------------------------------------
 
+
 class LiveTrader:
     """Real-world trading engine connecting strategy to Alpaca broker.
 
@@ -171,7 +173,7 @@ class LiveTrader:
         self.is_running: bool = False
 
         # Position tracking
-        self._current_position: float = 0.0   # Shares held (positive = long)
+        self._current_position: float = 0.0  # Shares held (positive = long)
         self._entry_price: float = 0.0
         self._equity: float = strategy.config.initial_capital
         self._last_equity: float = strategy.config.initial_capital
@@ -260,7 +262,11 @@ class LiveTrader:
 
         logger.debug(
             "Bar %d | %s | close=%.2f | signal=%s | latency=%.1fμs",
-            self._bar_count, bar.symbol, bar.close, signal.name, latency_us,
+            self._bar_count,
+            bar.symbol,
+            bar.close,
+            signal.name,
+            latency_us,
         )
 
         # --- Step 2: Risk check ---
@@ -283,7 +289,8 @@ class LiveTrader:
         self._update_equity(bar.close)
         daily_return = (
             (self._equity - self._last_equity) / self._last_equity
-            if self._last_equity > 0 else 0.0
+            if self._last_equity > 0
+            else 0.0
         )
         self.metrics.update(self._equity, daily_return)
         self._last_equity = self._equity
@@ -326,7 +333,10 @@ class LiveTrader:
 
         logger.info(
             "BUY executed | %s | qty=%.2f | price=%.2f | order_id=%s",
-            bar.symbol, qty, bar.close, order_id,
+            bar.symbol,
+            qty,
+            bar.close,
+            order_id,
         )
 
     async def _execute_sell(self, bar: LiveBar) -> None:
@@ -360,7 +370,11 @@ class LiveTrader:
 
         logger.info(
             "SELL executed | %s | qty=%.2f | price=%.2f | trade_ret=%.2f%% | order_id=%s",
-            bar.symbol, qty, bar.close, trade_return * 100, order_id,
+            bar.symbol,
+            qty,
+            bar.close,
+            trade_return * 100,
+            order_id,
         )
 
     async def _submit_order(
@@ -385,8 +399,13 @@ class LiveTrader:
         """
         try:
             from alpaca.trading.client import TradingClient  # type: ignore[import]
-            from alpaca.trading.requests import MarketOrderRequest  # type: ignore[import]
-            from alpaca.trading.enums import OrderSide, TimeInForce  # type: ignore[import]
+            from alpaca.trading.enums import (  # type: ignore[import]
+                OrderSide,
+                TimeInForce,
+            )
+            from alpaca.trading.requests import (
+                MarketOrderRequest,  # type: ignore[import]
+            )
 
             client = TradingClient(
                 api_key=settings.alpaca_api_key,
@@ -408,7 +427,10 @@ class LiveTrader:
             # alpaca-py not installed — simulate order (paper fallback)
             logger.warning(
                 "alpaca-py not installed. Simulating order: %s %s %.2f @ %.2f",
-                side.upper(), symbol, qty, price,
+                side.upper(),
+                symbol,
+                qty,
+                price,
             )
             return f"SIM-{side.upper()}-{int(time.time())}"
 
@@ -448,7 +470,9 @@ class LiveTrader:
                 await self.on_bar(live_bar)
 
             stream.subscribe_bars(bar_handler, self.config.symbol)
-            logger.info("WebSocket connected | subscribing to %s bars", self.config.symbol)
+            logger.info(
+                "WebSocket connected | subscribing to %s bars", self.config.symbol
+            )
             await stream.run()
 
         except ImportError:
@@ -471,7 +495,7 @@ class LiveTrader:
         while self.is_running:
             # Simulate a new bar (GBM: geometric Brownian motion)
             ret = np.random.normal(0.0005, 0.015)
-            price *= (1 + ret)
+            price *= 1 + ret
 
             bar = LiveBar(
                 symbol=self.config.symbol,
@@ -517,7 +541,9 @@ class LiveTrader:
             current_price: Latest close price.
         """
         if self._current_position > 0:
-            unrealized_pnl = self._current_position * (current_price - self._entry_price)
+            unrealized_pnl = self._current_position * (
+                current_price - self._entry_price
+            )
             self._equity = self._last_equity + unrealized_pnl
 
     def _validate_api_keys(self) -> None:
@@ -549,7 +575,8 @@ class LiveTrader:
             max_latency = max(self._signal_latencies)
             logger.info(
                 "Signal latency | avg=%.1fμs | max=%.1fμs",
-                avg_latency, max_latency,
+                avg_latency,
+                max_latency,
             )
         stop_logging()
 
@@ -564,13 +591,15 @@ class LiveTrader:
             Dictionary with metrics, trade count, and latency stats.
         """
         summary = self.metrics.get_summary()
-        summary.update({
-            "strategy": self.strategy.get_name(),
-            "symbol": self.config.symbol,
-            "n_trades": len(self.trade_log),
-            "bars_processed": self._bar_count,
-            "current_position": self._current_position,
-        })
+        summary.update(
+            {
+                "strategy": self.strategy.get_name(),
+                "symbol": self.config.symbol,
+                "n_trades": len(self.trade_log),
+                "bars_processed": self._bar_count,
+                "current_position": self._current_position,
+            }
+        )
         if self._signal_latencies:
             summary["avg_signal_latency_us"] = round(
                 sum(self._signal_latencies) / len(self._signal_latencies), 2

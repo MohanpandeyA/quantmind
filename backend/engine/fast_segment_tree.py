@@ -80,7 +80,9 @@ class FastSegmentTree:
 
         # Tree array: indices [0, 2n-1], 1-indexed internally
         # Leaves at [n, 2n-1], internal nodes at [1, n-1]
-        self.tree: np.ndarray = np.full(2 * self.n, fill_value=-np.inf, dtype=np.float64)
+        self.tree: np.ndarray = np.full(
+            2 * self.n, fill_value=-np.inf, dtype=np.float64
+        )
 
         # Fill leaves with data
         for i, val in enumerate(data):
@@ -92,7 +94,8 @@ class FastSegmentTree:
 
         logger.debug(
             "FastSegmentTree built | original_n=%d | padded_n=%d",
-            self._original_n, self.n
+            self._original_n,
+            self.n,
         )
 
     def query(self, left: int, right: int) -> float:
@@ -123,13 +126,13 @@ class FastSegmentTree:
         right += self.n + 1  # Exclusive right boundary
 
         while left < right:
-            if left & 1:   # left is a right child → include it, move right
+            if left & 1:  # left is a right child → include it, move right
                 result = max(result, self.tree[left])
                 left += 1
             if right & 1:  # right is a right child → include left sibling
                 right -= 1
                 result = max(result, self.tree[right])
-            left >>= 1   # Move up to parent
+            left >>= 1  # Move up to parent
             right >>= 1  # Move up to parent
 
         return float(result)
@@ -184,9 +187,7 @@ class FastSegmentTree:
         """
         # Negate trick: min(a,b) = -max(-a,-b)
         # Only works if tree was built with negated values
-        raise NotImplementedError(
-            "Use FastMinSegmentTree for range minimum queries."
-        )
+        raise NotImplementedError("Use FastMinSegmentTree for range minimum queries.")
 
     def _validate_range(self, left: int, right: int) -> None:
         """Validate query range.
@@ -246,7 +247,8 @@ class FastMinSegmentTree:
 
         logger.debug(
             "FastMinSegmentTree built | original_n=%d | padded_n=%d",
-            self._original_n, self.n
+            self._original_n,
+            self.n,
         )
 
     def query(self, left: int, right: int) -> float:
@@ -349,7 +351,5 @@ def build_fast_price_trees(
 
     max_tree = FastSegmentTree(highs)
     min_tree = FastMinSegmentTree(lows)
-    logger.info(
-        "Fast price trees built | n=%d | ready for live updates", len(highs)
-    )
+    logger.info("Fast price trees built | n=%d | ready for live updates", len(highs))
     return max_tree, min_tree

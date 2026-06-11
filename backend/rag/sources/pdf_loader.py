@@ -22,9 +22,9 @@ from typing import List, Optional
 from config.logging_config import get_logger
 from rag.sources.base_loader import (
     BaseLoader,
+    DocType,
     Document,
     DocumentMetadata,
-    DocType,
     LoaderError,
 )
 
@@ -100,7 +100,8 @@ class PDFLoader(BaseLoader):
         if not pdf_files:
             logger.info(
                 "PDFLoader | no PDFs found | ticker=%s | dir=%s",
-                ticker, self.pdf_dir,
+                ticker,
+                self.pdf_dir,
             )
             return []
 
@@ -109,10 +110,7 @@ class PDFLoader(BaseLoader):
         )
 
         # Load all PDFs concurrently
-        tasks = [
-            self._load_pdf(pdf_path, ticker, max_pages)
-            for pdf_path in pdf_files
-        ]
+        tasks = [self._load_pdf(pdf_path, ticker, max_pages) for pdf_path in pdf_files]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         documents: List[Document] = []
@@ -145,8 +143,7 @@ class PDFLoader(BaseLoader):
         path = Path(pdf_path)
         if not path.exists():
             raise LoaderError(
-                self.get_source_name(), ticker,
-                f"PDF file not found: {pdf_path}"
+                self.get_source_name(), ticker, f"PDF file not found: {pdf_path}"
             )
         return await self._load_pdf(path, ticker, max_pages=200)
 
@@ -223,9 +220,7 @@ class PDFLoader(BaseLoader):
         try:
             import pypdf  # type: ignore[import]
         except ImportError:
-            logger.error(
-                "PDFLoader | pypdf not installed. Run: pip install pypdf"
-            )
+            logger.error("PDFLoader | pypdf not installed. Run: pip install pypdf")
             return []
 
         documents: List[Document] = []
@@ -233,7 +228,9 @@ class PDFLoader(BaseLoader):
         try:
             reader = pypdf.PdfReader(str(pdf_path))
         except Exception as e:
-            logger.warning("PDFLoader | cannot open PDF | file=%s | %s", pdf_path.name, e)
+            logger.warning(
+                "PDFLoader | cannot open PDF | file=%s | %s", pdf_path.name, e
+            )
             return []
 
         # Extract PDF metadata
@@ -274,13 +271,12 @@ class PDFLoader(BaseLoader):
                 },
             )
 
-            documents.append(
-                Document(content=text.strip(), metadata=metadata)
-            )
+            documents.append(Document(content=text.strip(), metadata=metadata))
 
         logger.debug(
             "PDFLoader | extracted | file=%s | pages_with_content=%d",
-            pdf_path.name, len(documents),
+            pdf_path.name,
+            len(documents),
         )
         return documents
 
@@ -297,7 +293,9 @@ class PDFLoader(BaseLoader):
         from datetime import datetime
 
         try:
-            creation_date = getattr(pdf_meta, "get", lambda k, d: d)("/CreationDate", "")
+            creation_date = getattr(pdf_meta, "get", lambda k, d: d)(
+                "/CreationDate", ""
+            )
             if creation_date and len(str(creation_date)) >= 8:
                 # PDF dates: "D:20240115120000+05'30'"
                 date_str = str(creation_date)

@@ -47,7 +47,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 from config.logging_config import get_logger
-from engine.backtester import Backtester, BacktestConfig
+from engine.backtester import BacktestConfig, Backtester
 from engine.strategies.base_strategy import StrategyConfig
 from engine.strategies.macd_strategy import MACDStrategy
 from engine.strategies.mean_reversion import MeanReversionStrategy
@@ -86,6 +86,7 @@ MACD_GRID = {
 # Schemas
 # ---------------------------------------------------------------------------
 
+
 class OptimizeRequest(BaseModel):
     """Request to optimize strategy parameters.
 
@@ -118,14 +119,18 @@ class OptimizeRequest(BaseModel):
     @classmethod
     def validate_strategy(cls, v: str) -> str:
         if v not in ("momentum", "mean_reversion", "rsi", "macd"):
-            raise ValueError("strategy must be 'momentum', 'mean_reversion', 'rsi', or 'macd'")
+            raise ValueError(
+                "strategy must be 'momentum', 'mean_reversion', 'rsi', or 'macd'"
+            )
         return v
 
     @field_validator("optimize_for")
     @classmethod
     def validate_metric(cls, v: str) -> str:
         if v not in ("sharpe", "total_return", "calmar"):
-            raise ValueError("optimize_for must be 'sharpe', 'total_return', or 'calmar'")
+            raise ValueError(
+                "optimize_for must be 'sharpe', 'total_return', or 'calmar'"
+            )
         return v
 
 
@@ -161,6 +166,7 @@ class OptimizeResponse(BaseModel):
 # Route
 # ---------------------------------------------------------------------------
 
+
 @router.post(
     "",
     response_model=OptimizeResponse,
@@ -185,11 +191,14 @@ async def optimize_strategy(request: OptimizeRequest) -> OptimizeResponse:
         OptimizeResponse with best params and all tested combinations.
     """
     import time
+
     start_time = time.perf_counter()
 
     logger.info(
         "Optimize | starting | ticker=%s | strategy=%s | metric=%s",
-        request.ticker, request.strategy, request.optimize_for,
+        request.ticker,
+        request.strategy,
+        request.optimize_for,
     )
 
     # Run grid search in thread pool (CPU-bound backtesting)
@@ -216,14 +225,13 @@ async def optimize_strategy(request: OptimizeRequest) -> OptimizeResponse:
 
     # Get default params score for comparison
     default_params = _get_default_params(request.strategy)
-    default_result = next(
-        (r for r in results if r.params == default_params), None
-    )
+    default_result = next((r for r in results if r.params == default_params), None)
     default_score = default_result.score if default_result else 0.0
 
     improvement = (
         ((best.score - default_score) / abs(default_score) * 100)
-        if default_score != 0 else 0.0
+        if default_score != 0
+        else 0.0
     )
 
     duration_ms = (time.perf_counter() - start_time) * 1000
@@ -231,7 +239,11 @@ async def optimize_strategy(request: OptimizeRequest) -> OptimizeResponse:
     logger.info(
         "Optimize | complete | ticker=%s | best_params=%s | best_score=%.3f | "
         "improvement=%.1f%% | time=%.0fms",
-        request.ticker, best.params, best.score, improvement, duration_ms,
+        request.ticker,
+        best.params,
+        best.score,
+        improvement,
+        duration_ms,
     )
 
     return OptimizeResponse(
@@ -251,6 +263,7 @@ async def optimize_strategy(request: OptimizeRequest) -> OptimizeResponse:
 # ---------------------------------------------------------------------------
 # Grid search (synchronous — runs in thread pool)
 # ---------------------------------------------------------------------------
+
 
 def _run_grid_search(
     ticker: str,
@@ -331,16 +344,18 @@ def _run_grid_search(
             # Get the optimization score
             score = _get_score(report, optimize_for)
 
-            results.append(ParamResult(
-                params=params,
-                sharpe_ratio=round(report.sharpe_ratio, 3),
-                total_return=round(report.total_return, 4),
-                max_drawdown=round(report.max_drawdown, 4),
-                calmar_ratio=round(report.calmar_ratio, 3),
-                win_rate=round(report.win_rate, 3),
-                n_trades=report.n_trades,
-                score=round(score, 4),
-            ))
+            results.append(
+                ParamResult(
+                    params=params,
+                    sharpe_ratio=round(report.sharpe_ratio, 3),
+                    total_return=round(report.total_return, 4),
+                    max_drawdown=round(report.max_drawdown, 4),
+                    calmar_ratio=round(report.calmar_ratio, 3),
+                    win_rate=round(report.win_rate, 3),
+                    n_trades=report.n_trades,
+                    score=round(score, 4),
+                )
+            )
 
         except Exception as e:
             logger.debug("Optimize | param failed | params=%s | %s", params, e)
@@ -362,6 +377,7 @@ def _generate_combinations(grid: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
         → [{"a": 1, "b": 10}, {"a": 1, "b": 20}, {"a": 2, "b": 10}, {"a": 2, "b": 20}]
     """
     import itertools
+
     keys = list(grid.keys())
     values = list(grid.values())
     combinations = []

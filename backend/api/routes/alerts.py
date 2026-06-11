@@ -52,6 +52,7 @@ router = APIRouter(prefix="/alerts", tags=["Alerts"])
 # Alert data structures
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PriceAlert:
     """A single price alert configuration.
@@ -65,7 +66,9 @@ class PriceAlert:
     """
 
     ticker: str
-    condition: str  # "price_below", "price_above", "change_pct_below", "change_pct_above"
+    condition: (
+        str  # "price_below", "price_above", "change_pct_below", "change_pct_above"
+    )
     threshold: float
     message: str = ""
     triggered: bool = False
@@ -121,6 +124,7 @@ class PriceAlert:
 # Connection Manager
 # ---------------------------------------------------------------------------
 
+
 class ConnectionManager:
     """Manages all active WebSocket connections.
 
@@ -159,14 +163,20 @@ class ConnectionManager:
 
         # Send current alerts to new connection — guard against immediate disconnect
         try:
-            await websocket.send_json({
-                "type": "connected",
-                "message": f"Connected to QuantMind alerts. {len(self.alerts)} alerts active.",
-                "alerts": [
-                    {"ticker": a.ticker, "condition": a.condition, "threshold": a.threshold}
-                    for a in self.alerts
-                ],
-            })
+            await websocket.send_json(
+                {
+                    "type": "connected",
+                    "message": f"Connected to QuantMind alerts. {len(self.alerts)} alerts active.",
+                    "alerts": [
+                        {
+                            "ticker": a.ticker,
+                            "condition": a.condition,
+                            "threshold": a.threshold,
+                        }
+                        for a in self.alerts
+                    ],
+                }
+            )
         except Exception:
             # Client disconnected before welcome message could be sent — clean up silently
             self.active_connections.discard(websocket)
@@ -209,13 +219,16 @@ class ConnectionManager:
         """
         # Remove existing alert for same ticker+condition
         self.alerts = [
-            a for a in self.alerts
+            a
+            for a in self.alerts
             if not (a.ticker == alert.ticker and a.condition == alert.condition)
         ]
         self.alerts.append(alert)
         logger.info(
             "Alert added | ticker=%s | condition=%s | threshold=%.2f",
-            alert.ticker, alert.condition, alert.threshold,
+            alert.ticker,
+            alert.condition,
+            alert.threshold,
         )
 
     def remove_alert(self, ticker: str, condition: Optional[str] = None) -> int:
@@ -230,7 +243,11 @@ class ConnectionManager:
         """
         before = len(self.alerts)
         if condition:
-            self.alerts = [a for a in self.alerts if not (a.ticker == ticker and a.condition == condition)]
+            self.alerts = [
+                a
+                for a in self.alerts
+                if not (a.ticker == ticker and a.condition == condition)
+            ]
         else:
             self.alerts = [a for a in self.alerts if a.ticker != ticker]
         removed = before - len(self.alerts)
@@ -285,16 +302,18 @@ class ConnectionManager:
 
             if alert.check(current_price, change_pct):
                 alert.triggered = True
-                triggered_alerts.append({
-                    "type": "alert",
-                    "ticker": alert.ticker,
-                    "condition": alert.condition,
-                    "threshold": alert.threshold,
-                    "current_price": current_price,
-                    "change_pct": change_pct,
-                    "message": alert.format_message(current_price, change_pct),
-                    "timestamp": datetime.utcnow().isoformat(),
-                })
+                triggered_alerts.append(
+                    {
+                        "type": "alert",
+                        "ticker": alert.ticker,
+                        "condition": alert.condition,
+                        "threshold": alert.threshold,
+                        "current_price": current_price,
+                        "change_pct": change_pct,
+                        "message": alert.format_message(current_price, change_pct),
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+                )
 
         # Broadcast triggered alerts
         for alert_msg in triggered_alerts:
@@ -303,11 +322,13 @@ class ConnectionManager:
 
         # Send price update to all clients
         if prices:
-            await self.broadcast({
-                "type": "price_update",
-                "prices": prices,
-                "timestamp": datetime.utcnow().isoformat(),
-            })
+            await self.broadcast(
+                {
+                    "type": "price_update",
+                    "prices": prices,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
 
 
 # Singleton connection manager
@@ -317,6 +338,7 @@ manager = ConnectionManager()
 # ---------------------------------------------------------------------------
 # Helper: batch price fetch
 # ---------------------------------------------------------------------------
+
 
 async def _fetch_prices_batch(tickers: List[str]) -> Dict[str, Dict[str, float]]:
     """Fetch current prices for multiple tickers.
@@ -343,6 +365,7 @@ def _fetch_sync(tickers: List[str]) -> Dict[str, Dict[str, float]]:
     warnings.filterwarnings("ignore")
     try:
         import yfinance as yf
+
         data = yf.download(tickers, period="1d", auto_adjust=True, progress=False)
         result: Dict[str, Dict[str, float]] = {}
 
@@ -351,13 +374,20 @@ def _fetch_sync(tickers: List[str]) -> Dict[str, Dict[str, float]]:
                 if len(tickers) == 1:
                     hist = data
                 else:
-                    hist = data[ticker] if ticker in data.columns.get_level_values(0) else data
+                    hist = (
+                        data[ticker]
+                        if ticker in data.columns.get_level_values(0)
+                        else data
+                    )
 
                 if hist.empty:
                     continue
 
                 if hasattr(hist.columns, "levels"):
-                    hist.columns = [c[0].lower() if isinstance(c, tuple) else c.lower() for c in hist.columns]
+                    hist.columns = [
+                        c[0].lower() if isinstance(c, tuple) else c.lower()
+                        for c in hist.columns
+                    ]
                 else:
                     hist.columns = [c.lower() for c in hist.columns]
 
@@ -381,6 +411,7 @@ def _fetch_sync(tickers: List[str]) -> Dict[str, Dict[str, float]]:
 # ---------------------------------------------------------------------------
 # WebSocket endpoint
 # ---------------------------------------------------------------------------
+
 
 @router.websocket("/ws")
 async def websocket_alerts(websocket: WebSocket) -> None:
@@ -418,36 +449,42 @@ async def websocket_alerts(websocket: WebSocket) -> None:
                         message=msg.get("message", ""),
                     )
                     manager.add_alert(alert)
-                    await websocket.send_json({
-                        "type": "alert_added",
-                        "ticker": alert.ticker,
-                        "condition": alert.condition,
-                        "threshold": alert.threshold,
-                        "message": f"Alert set: {alert.ticker} {alert.condition} {alert.threshold}",
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "alert_added",
+                            "ticker": alert.ticker,
+                            "condition": alert.condition,
+                            "threshold": alert.threshold,
+                            "message": f"Alert set: {alert.ticker} {alert.condition} {alert.threshold}",
+                        }
+                    )
 
                 elif action == "remove":
                     ticker = msg.get("ticker", "").upper()
                     removed = manager.remove_alert(ticker, msg.get("condition"))
-                    await websocket.send_json({
-                        "type": "alert_removed",
-                        "ticker": ticker,
-                        "count": removed,
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "alert_removed",
+                            "ticker": ticker,
+                            "count": removed,
+                        }
+                    )
 
                 elif action == "list":
-                    await websocket.send_json({
-                        "type": "alert_list",
-                        "alerts": [
-                            {
-                                "ticker": a.ticker,
-                                "condition": a.condition,
-                                "threshold": a.threshold,
-                                "triggered": a.triggered,
-                            }
-                            for a in manager.alerts
-                        ],
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "alert_list",
+                            "alerts": [
+                                {
+                                    "ticker": a.ticker,
+                                    "condition": a.condition,
+                                    "threshold": a.threshold,
+                                    "triggered": a.triggered,
+                                }
+                                for a in manager.alerts
+                            ],
+                        }
+                    )
 
                 elif action == "ping":
                     await websocket.send_json({"type": "pong"})
@@ -455,7 +492,9 @@ async def websocket_alerts(websocket: WebSocket) -> None:
             except json.JSONDecodeError:
                 await websocket.send_json({"type": "error", "message": "Invalid JSON"})
             except KeyError as e:
-                await websocket.send_json({"type": "error", "message": f"Missing field: {e}"})
+                await websocket.send_json(
+                    {"type": "error", "message": f"Missing field: {e}"}
+                )
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)

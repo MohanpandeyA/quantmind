@@ -108,7 +108,8 @@ async def analyze(request: AnalysisRequest) -> AnalysisResponse:
     """
     logger.info(
         "POST /analyze | ticker=%s | query=%r",
-        request.ticker, request.query[:50],
+        request.ticker,
+        request.query[:50],
     )
 
     try:
@@ -148,7 +149,9 @@ async def analyze(request: AnalysisRequest) -> AnalysisResponse:
     except Exception as e:
         logger.error(
             "POST /analyze | unexpected error | ticker=%s | %s",
-            request.ticker, e, exc_info=True,
+            request.ticker,
+            e,
+            exc_info=True,
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

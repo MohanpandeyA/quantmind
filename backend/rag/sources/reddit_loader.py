@@ -31,7 +31,7 @@ import feedparser  # Already installed (used by NewsLoader)
 
 from config.logging_config import get_logger
 from config.settings import settings
-from rag.sources.base_loader import BaseLoader, Document, DocumentMetadata, DocType
+from rag.sources.base_loader import BaseLoader, DocType, Document, DocumentMetadata
 
 logger = get_logger(__name__)
 
@@ -97,7 +97,9 @@ class RedditLoader(BaseLoader):
         logger.info(
             "SocialLoader | complete | ticker=%s | docs=%d "
             "(stocktwits=%d, reddit=%d)",
-            ticker, len(docs), len(stocktwits_docs),
+            ticker,
+            len(docs),
+            len(stocktwits_docs),
             len(docs) - len(stocktwits_docs),
         )
         return docs
@@ -113,9 +115,7 @@ class RedditLoader(BaseLoader):
         """
         try:
             loop = asyncio.get_event_loop()
-            docs = await loop.run_in_executor(
-                None, self._fetch_stocktwits_sync, ticker
-            )
+            docs = await loop.run_in_executor(None, self._fetch_stocktwits_sync, ticker)
             return docs
         except Exception as e:
             logger.debug("SocialLoader | StockTwits failed | ticker=%s | %s", ticker, e)
@@ -162,7 +162,8 @@ class RedditLoader(BaseLoader):
 
         logger.info(
             "SocialLoader | StockTwits | ticker=%s | posts=%d",
-            ticker, len(documents),
+            ticker,
+            len(documents),
         )
         return documents
 
@@ -177,9 +178,7 @@ class RedditLoader(BaseLoader):
         """
         try:
             loop = asyncio.get_event_loop()
-            docs = await loop.run_in_executor(
-                None, self._fetch_reddit_sync, ticker
-            )
+            docs = await loop.run_in_executor(None, self._fetch_reddit_sync, ticker)
             return docs
         except Exception as e:
             logger.debug("SocialLoader | Reddit failed | ticker=%s | %s", ticker, e)
@@ -253,6 +252,7 @@ class RedditLoader(BaseLoader):
 
         logger.info(
             "SocialLoader | Reddit | ticker=%s | posts=%d",
-            ticker, len(unique),
+            ticker,
+            len(unique),
         )
         return unique

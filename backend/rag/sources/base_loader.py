@@ -29,6 +29,7 @@ logger = get_logger(__name__)
 # Document type enum
 # ---------------------------------------------------------------------------
 
+
 class DocType(str, Enum):
     """Supported financial document types.
 
@@ -36,19 +37,20 @@ class DocType(str, Enum):
     "only search 10-K filings from the last 2 years".
     """
 
-    SEC_10K = "10-K"          # Annual report — comprehensive financials
-    SEC_10Q = "10-Q"          # Quarterly report — interim financials
-    SEC_8K = "8-K"            # Material event — M&A, CEO change, etc.
-    NEWS = "news"             # Financial news article
-    RSS = "rss"               # RSS feed article
-    PDF = "pdf"               # Research paper, analyst report
-    EARNINGS = "earnings"     # Earnings call transcript
+    SEC_10K = "10-K"  # Annual report — comprehensive financials
+    SEC_10Q = "10-Q"  # Quarterly report — interim financials
+    SEC_8K = "8-K"  # Material event — M&A, CEO change, etc.
+    NEWS = "news"  # Financial news article
+    RSS = "rss"  # RSS feed article
+    PDF = "pdf"  # Research paper, analyst report
+    EARNINGS = "earnings"  # Earnings call transcript
     UNKNOWN = "unknown"
 
 
 # ---------------------------------------------------------------------------
 # Document metadata
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class DocumentMetadata:
@@ -74,7 +76,7 @@ class DocumentMetadata:
     ticker: str
     source: str
     doc_type: DocType
-    date: str                          # ISO format: "2024-01-15"
+    date: str  # ISO format: "2024-01-15"
     url: str = ""
     title: str = ""
     filing_period: str = ""
@@ -117,9 +119,7 @@ class DocumentMetadata:
         Returns:
             DocumentMetadata instance.
         """
-        extra = {
-            k[6:]: v for k, v in d.items() if k.startswith("extra_")
-        }
+        extra = {k[6:]: v for k, v in d.items() if k.startswith("extra_")}
         return cls(
             ticker=d.get("ticker", ""),
             source=d.get("source", ""),
@@ -136,6 +136,7 @@ class DocumentMetadata:
 # ---------------------------------------------------------------------------
 # Core Document dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Document:
@@ -222,6 +223,7 @@ class Document:
 # Abstract base loader
 # ---------------------------------------------------------------------------
 
+
 class BaseLoader(ABC):
     """Abstract base class for all document source loaders.
 
@@ -300,7 +302,10 @@ class BaseLoader(ABC):
         total_words = sum(d.word_count() for d in docs)
         logger.info(
             "%s | loaded | ticker=%s | docs=%d | total_words=%d",
-            self.get_source_name(), ticker, len(docs), total_words,
+            self.get_source_name(),
+            ticker,
+            len(docs),
+            total_words,
         )
 
     def __repr__(self) -> str:
@@ -310,6 +315,7 @@ class BaseLoader(ABC):
 # ---------------------------------------------------------------------------
 # Custom exceptions
 # ---------------------------------------------------------------------------
+
 
 class LoaderError(Exception):
     """Raised when a document loader fails to fetch data.
@@ -332,4 +338,5 @@ class RateLimitError(LoaderError):
 
     The Ingestion pipeline catches this and implements exponential backoff.
     """
+
     pass

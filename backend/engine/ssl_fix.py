@@ -43,6 +43,7 @@ def apply_ssl_fix() -> None:
     # Suppress urllib3 NotOpenSSLWarning
     try:
         from urllib3.exceptions import NotOpenSSLWarning
+
         warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
     except Exception:
         pass
@@ -50,6 +51,7 @@ def apply_ssl_fix() -> None:
     # Suppress all InsecureRequestWarnings
     try:
         import urllib3
+
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     except Exception:
         pass
@@ -60,7 +62,9 @@ def apply_ssl_fix() -> None:
 
         _orig_request = curl_req.Session.request
 
-        def _patched_request(self: object, method: str, url: str, **kwargs: object) -> object:
+        def _patched_request(
+            self: object, method: str, url: str, **kwargs: object
+        ) -> object:
             """Patched request that disables SSL verification by default."""
             kwargs.setdefault("verify", False)
             return _orig_request(self, method, url, **kwargs)  # type: ignore[arg-type]

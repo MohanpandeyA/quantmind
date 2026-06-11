@@ -14,17 +14,17 @@ import pytest
 
 from rag.sources.base_loader import (
     BaseLoader,
+    DocType,
     Document,
     DocumentMetadata,
-    DocType,
     LoaderError,
     RateLimitError,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def make_metadata(
     ticker: str = "AAPL",
@@ -58,6 +58,7 @@ def make_document(
 # DocType enum tests
 # ---------------------------------------------------------------------------
 
+
 class TestDocType:
     def test_sec_10k_value(self) -> None:
         assert DocType.SEC_10K.value == "10-K"
@@ -88,6 +89,7 @@ class TestDocType:
 # ---------------------------------------------------------------------------
 # DocumentMetadata tests
 # ---------------------------------------------------------------------------
+
 
 class TestDocumentMetadata:
     def test_basic_creation(self) -> None:
@@ -197,6 +199,7 @@ class TestDocumentMetadata:
 # Document tests
 # ---------------------------------------------------------------------------
 
+
 class TestDocument:
     def test_basic_creation(self) -> None:
         doc = make_document()
@@ -259,6 +262,7 @@ class TestDocument:
 # BaseLoader abstract enforcement tests
 # ---------------------------------------------------------------------------
 
+
 class TestBaseLoaderAbstract:
     def test_cannot_instantiate_abstract_class(self) -> None:
         with pytest.raises(TypeError):
@@ -268,6 +272,7 @@ class TestBaseLoaderAbstract:
         class IncompleteLoader(BaseLoader):
             def get_source_name(self) -> str:
                 return "Incomplete"
+
             # Missing load()
 
         with pytest.raises(TypeError):
@@ -280,6 +285,7 @@ class TestBaseLoaderAbstract:
         class IncompleteLoader(BaseLoader):
             async def load(self, ticker: str, **kwargs: object) -> List[Document]:
                 return []
+
             # Missing get_source_name()
 
         with pytest.raises(TypeError):
@@ -289,6 +295,7 @@ class TestBaseLoaderAbstract:
 # ---------------------------------------------------------------------------
 # BaseLoader validate_query tests
 # ---------------------------------------------------------------------------
+
 
 class TestBaseLoaderValidation:
     """Tests for validate_query() using a concrete subclass."""
@@ -331,6 +338,7 @@ class TestBaseLoaderValidation:
 # ---------------------------------------------------------------------------
 # Exception tests
 # ---------------------------------------------------------------------------
+
 
 class TestExceptions:
     def test_loader_error_message(self) -> None:

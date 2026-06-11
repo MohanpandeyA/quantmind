@@ -73,13 +73,9 @@ class StrategyConfig:
                 f"initial_capital must be positive, got {self.initial_capital}."
             )
         if not (0 <= self.stop_loss < 1.0):
-            raise ValueError(
-                f"stop_loss must be in [0, 1), got {self.stop_loss}."
-            )
+            raise ValueError(f"stop_loss must be in [0, 1), got {self.stop_loss}.")
         if not (0 <= self.commission < 0.1):
-            raise ValueError(
-                f"commission must be in [0, 0.1), got {self.commission}."
-            )
+            raise ValueError(f"commission must be in [0, 0.1), got {self.commission}.")
 
 
 @dataclass
@@ -253,9 +249,7 @@ class BaseStrategy(ABC):
         if df.empty:
             raise ValueError("DataFrame must not be empty.")
         if len(df) < 2:
-            raise ValueError(
-                f"DataFrame must have at least 2 rows, got {len(df)}."
-            )
+            raise ValueError(f"DataFrame must have at least 2 rows, got {len(df)}.")
 
         self._df_validated = True
 

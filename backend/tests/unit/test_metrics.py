@@ -12,8 +12,8 @@ Tests cover:
 - PerformanceReport.to_dict(): serialization
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from engine.metrics import (
     PerformanceReport,
@@ -30,10 +30,10 @@ from engine.metrics import (
     win_rate,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def positive_returns() -> np.ndarray:
@@ -73,6 +73,7 @@ def equity_curve_with_drawdown() -> np.ndarray:
 # sharpe_ratio tests
 # ---------------------------------------------------------------------------
 
+
 class TestSharpeRatio:
     """Tests for Sharpe ratio computation."""
 
@@ -104,9 +105,7 @@ class TestSharpeRatio:
     def test_empty_returns_zero(self) -> None:
         assert sharpe_ratio(np.array([])) == 0.0
 
-    def test_risk_free_rate_reduces_sharpe(
-        self, positive_returns: np.ndarray
-    ) -> None:
+    def test_risk_free_rate_reduces_sharpe(self, positive_returns: np.ndarray) -> None:
         sharpe_no_rf = sharpe_ratio(positive_returns, risk_free_rate=0.0)
         sharpe_with_rf = sharpe_ratio(positive_returns, risk_free_rate=0.0001)
         assert sharpe_no_rf > sharpe_with_rf
@@ -115,6 +114,7 @@ class TestSharpeRatio:
 # ---------------------------------------------------------------------------
 # sortino_ratio tests
 # ---------------------------------------------------------------------------
+
 
 class TestSortinoRatio:
     """Tests for Sortino ratio computation."""
@@ -150,19 +150,16 @@ class TestSortinoRatio:
 # max_drawdown tests
 # ---------------------------------------------------------------------------
 
+
 class TestMaxDrawdown:
     """Tests for maximum drawdown computation."""
 
-    def test_known_drawdown(
-        self, equity_curve_with_drawdown: np.ndarray
-    ) -> None:
+    def test_known_drawdown(self, equity_curve_with_drawdown: np.ndarray) -> None:
         # Peak = 120, trough = 90 → MDD = (120-90)/120 = 0.25
         mdd = max_drawdown(equity_curve_with_drawdown)
         assert mdd == pytest.approx(0.25, rel=1e-3)
 
-    def test_rising_equity_zero_drawdown(
-        self, equity_curve_rising: np.ndarray
-    ) -> None:
+    def test_rising_equity_zero_drawdown(self, equity_curve_rising: np.ndarray) -> None:
         mdd = max_drawdown(equity_curve_rising)
         assert mdd == pytest.approx(0.0, abs=1e-6)
 
@@ -189,6 +186,7 @@ class TestMaxDrawdown:
 # ---------------------------------------------------------------------------
 # calmar_ratio tests
 # ---------------------------------------------------------------------------
+
 
 class TestCalmarRatio:
     """Tests for Calmar ratio computation."""
@@ -217,6 +215,7 @@ class TestCalmarRatio:
 # annualized_return / annualized_volatility tests
 # ---------------------------------------------------------------------------
 
+
 class TestAnnualizedMetrics:
     """Tests for annualized return and volatility."""
 
@@ -229,9 +228,7 @@ class TestAnnualizedMetrics:
     def test_annualized_return_empty_returns_zero(self) -> None:
         assert annualized_return(np.array([])) == 0.0
 
-    def test_annualized_volatility_positive(
-        self, mixed_returns: np.ndarray
-    ) -> None:
+    def test_annualized_volatility_positive(self, mixed_returns: np.ndarray) -> None:
         result = annualized_volatility(mixed_returns)
         assert result > 0
 
@@ -248,6 +245,7 @@ class TestAnnualizedMetrics:
 # VaR / CVaR tests
 # ---------------------------------------------------------------------------
 
+
 class TestVaR:
     """Tests for Value at Risk and Conditional VaR."""
 
@@ -255,9 +253,7 @@ class TestVaR:
         var = historical_var(mixed_returns, confidence=0.95)
         assert var >= 0.0
 
-    def test_historical_var_95_less_than_99(
-        self, mixed_returns: np.ndarray
-    ) -> None:
+    def test_historical_var_95_less_than_99(self, mixed_returns: np.ndarray) -> None:
         var_95 = historical_var(mixed_returns, confidence=0.95)
         var_99 = historical_var(mixed_returns, confidence=0.99)
         # Higher confidence → larger VaR (more conservative)
@@ -291,6 +287,7 @@ class TestVaR:
 # ---------------------------------------------------------------------------
 # win_rate / profit_factor tests
 # ---------------------------------------------------------------------------
+
 
 class TestWinRateAndProfitFactor:
     """Tests for trade-level statistics."""
@@ -336,6 +333,7 @@ class TestWinRateAndProfitFactor:
 # compute_full_report integration tests
 # ---------------------------------------------------------------------------
 
+
 class TestComputeFullReport:
     """Integration tests for compute_full_report()."""
 
@@ -346,9 +344,7 @@ class TestComputeFullReport:
         report = compute_full_report(positive_returns, equity)
         assert isinstance(report, PerformanceReport)
 
-    def test_report_fields_populated(
-        self, positive_returns: np.ndarray
-    ) -> None:
+    def test_report_fields_populated(self, positive_returns: np.ndarray) -> None:
         equity = np.cumprod(1 + positive_returns) * 100_000
         trade_returns = np.array([0.05, -0.02, 0.03, 0.04, -0.01])
         report = compute_full_report(positive_returns, equity, trade_returns)
@@ -358,18 +354,25 @@ class TestComputeFullReport:
         assert report.n_trades == 5
         assert report.n_days == len(positive_returns)
 
-    def test_report_to_dict_has_all_keys(
-        self, positive_returns: np.ndarray
-    ) -> None:
+    def test_report_to_dict_has_all_keys(self, positive_returns: np.ndarray) -> None:
         equity = np.cumprod(1 + positive_returns) * 100_000
         report = compute_full_report(positive_returns, equity)
         d = report.to_dict()
 
         expected_keys = {
-            "total_return", "annualized_return", "annualized_volatility",
-            "sharpe_ratio", "sortino_ratio", "max_drawdown", "calmar_ratio",
-            "var_95", "cvar_95", "win_rate", "profit_factor",
-            "n_trades", "n_days",
+            "total_return",
+            "annualized_return",
+            "annualized_volatility",
+            "sharpe_ratio",
+            "sortino_ratio",
+            "max_drawdown",
+            "calmar_ratio",
+            "var_95",
+            "cvar_95",
+            "win_rate",
+            "profit_factor",
+            "n_trades",
+            "n_days",
         }
         assert expected_keys.issubset(set(d.keys()))
 

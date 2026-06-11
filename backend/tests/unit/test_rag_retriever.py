@@ -22,13 +22,13 @@ import pytest
 
 from rag.ingestion import IngestionReport
 from rag.retriever import Retriever
-from rag.sources.base_loader import DocumentMetadata, DocType
+from rag.sources.base_loader import DocType, DocumentMetadata
 from rag.vector_store import SearchResult, VectorStore
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def make_search_result(
     content: str = "Apple revenue grew 15% in Q3 2024.",
@@ -80,6 +80,7 @@ def make_retriever(
 # SearchResult tests
 # ---------------------------------------------------------------------------
 
+
 class TestSearchResult:
     def test_basic_creation(self) -> None:
         result = make_search_result()
@@ -124,6 +125,7 @@ class TestSearchResult:
 # ---------------------------------------------------------------------------
 # VectorStore._build_filter() tests
 # ---------------------------------------------------------------------------
+
 
 class TestVectorStoreBuildFilter:
     def test_no_filters_returns_none(self) -> None:
@@ -173,6 +175,7 @@ class TestVectorStoreBuildFilter:
 # Retriever._jaccard_similarity() tests
 # ---------------------------------------------------------------------------
 
+
 class TestJaccardSimilarity:
     def test_identical_sets_return_1(self) -> None:
         s = {"apple", "revenue", "grew"}
@@ -201,6 +204,7 @@ class TestJaccardSimilarity:
 # ---------------------------------------------------------------------------
 # Retriever._mmr_rerank() tests
 # ---------------------------------------------------------------------------
+
 
 class TestMMRRerank:
     def test_returns_k_results(self) -> None:
@@ -232,12 +236,15 @@ class TestMMRRerank:
 
         # Create candidates where first 3 are very similar (same words)
         similar_content = "apple revenue iphone sales grew quarterly"
-        diverse_content = ["microsoft azure cloud profit", "tesla ev battery range", "amazon aws revenue"]
+        diverse_content = [
+            "microsoft azure cloud profit",
+            "tesla ev battery range",
+            "amazon aws revenue",
+        ]
 
-        candidates = (
-            [make_search_result(content=similar_content, score=0.9)] * 3 +
-            [make_search_result(content=c, score=0.7) for c in diverse_content]
-        )
+        candidates = [make_search_result(content=similar_content, score=0.9)] * 3 + [
+            make_search_result(content=c, score=0.7) for c in diverse_content
+        ]
 
         results = retriever._mmr_rerank(candidates, np.random.rand(384), k=3)
         # With high diversity, should not select all 3 similar candidates
@@ -260,6 +267,7 @@ class TestMMRRerank:
 # ---------------------------------------------------------------------------
 # Retriever.build_context() tests
 # ---------------------------------------------------------------------------
+
 
 class TestBuildContext:
     def test_empty_results_returns_no_documents_message(self) -> None:
@@ -290,10 +298,7 @@ class TestBuildContext:
     def test_context_respects_max_chars(self) -> None:
         retriever = make_retriever()
         # Create results with long content
-        results = [
-            make_search_result(content="A" * 2000)
-            for _ in range(5)
-        ]
+        results = [make_search_result(content="A" * 2000) for _ in range(5)]
         context = retriever.build_context(results, max_context_chars=3000)
         assert len(context) <= 3500  # Allow some tolerance for formatting
 
@@ -307,6 +312,7 @@ class TestBuildContext:
 # ---------------------------------------------------------------------------
 # Retriever.build_citations() tests
 # ---------------------------------------------------------------------------
+
 
 class TestBuildCitations:
     def test_returns_list_of_strings(self) -> None:
@@ -332,6 +338,7 @@ class TestBuildCitations:
 # IngestionReport tests
 # ---------------------------------------------------------------------------
 
+
 class TestIngestionReport:
     def test_default_values(self) -> None:
         report = IngestionReport(ticker="AAPL")
@@ -350,8 +357,14 @@ class TestIngestionReport:
         )
         d = report.to_dict()
         expected_keys = {
-            "ticker", "docs_loaded", "docs_skipped", "chunks_created",
-            "chunks_stored", "sources_used", "errors", "duration_seconds",
+            "ticker",
+            "docs_loaded",
+            "docs_skipped",
+            "chunks_created",
+            "chunks_stored",
+            "sources_used",
+            "errors",
+            "duration_seconds",
         }
         assert expected_keys.issubset(set(d.keys()))
 

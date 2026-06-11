@@ -38,7 +38,7 @@ import numpy as np
 import pandas as pd
 
 from config.logging_config import get_logger
-from engine.backtester import Backtester, BacktestConfig
+from engine.backtester import BacktestConfig, Backtester
 from engine.strategies.base_strategy import StrategyConfig
 from engine.strategies.macd_strategy import MACDStrategy
 from engine.strategies.mean_reversion import MeanReversionStrategy
@@ -116,8 +116,12 @@ async def backtest_agent(state: TradingState) -> TradingState:
     logger.info(
         "BacktestAgent | running | ticker=%s | strategy=%s | %s → %s | "
         "retry=%d | data_cached=%s",
-        ticker, selected_strategy, start_date, end_date,
-        retry_count, is_cached,
+        ticker,
+        selected_strategy,
+        start_date,
+        end_date,
+        retry_count,
+        is_cached,
     )
 
     try:
@@ -162,9 +166,10 @@ async def backtest_agent(state: TradingState) -> TradingState:
             backtester._df = _df_cache[cache_key]
             logger.debug(
                 "BacktestAgent | using cached data | key=%s | rows=%d",
-                cache_key, len(_df_cache[cache_key]),
+                cache_key,
+                len(_df_cache[cache_key]),
             )
-        
+
         result, report = backtester.run()
 
         # CACHING: Store the downloaded DataFrame for future retries
@@ -172,7 +177,8 @@ async def backtest_agent(state: TradingState) -> TradingState:
             _df_cache[cache_key] = backtester._df
             logger.info(
                 "BacktestAgent | data cached | key=%s | rows=%d",
-                cache_key, len(backtester._df),
+                cache_key,
+                len(backtester._df),
             )
 
         # Build BacktestResults from PerformanceReport
@@ -200,7 +206,8 @@ async def backtest_agent(state: TradingState) -> TradingState:
         logger.info(
             "BacktestAgent | complete | ticker=%s | strategy=%s | "
             "sharpe=%.2f | return=%.1f%% | mdd=%.1f%% | trades=%d",
-            ticker, selected_strategy,
+            ticker,
+            selected_strategy,
             report.sharpe_ratio,
             report.total_return * 100,
             report.max_drawdown * 100,
@@ -217,7 +224,10 @@ async def backtest_agent(state: TradingState) -> TradingState:
     except Exception as e:
         logger.error(
             "BacktestAgent | failed | ticker=%s | strategy=%s | %s",
-            ticker, selected_strategy, e, exc_info=True,
+            ticker,
+            selected_strategy,
+            e,
+            exc_info=True,
         )
         # Return neutral results on failure
         return {

@@ -51,9 +51,9 @@ from rag.vector_store import SearchResult, VectorStore
 logger = get_logger(__name__)
 
 # Default MMR parameters
-DEFAULT_N_RESULTS = 5       # Final number of results to return
-DEFAULT_FETCH_K = 20        # Candidates to fetch before MMR reranking
-DEFAULT_LAMBDA = 0.5        # MMR lambda: 0.5 = balanced relevance + diversity
+DEFAULT_N_RESULTS = 5  # Final number of results to return
+DEFAULT_FETCH_K = 20  # Candidates to fetch before MMR reranking
+DEFAULT_LAMBDA = 0.5  # MMR lambda: 0.5 = balanced relevance + diversity
 
 
 class Retriever:
@@ -154,7 +154,10 @@ class Retriever:
 
         logger.info(
             "Retriever | query=%r | ticker=%s | n_results=%d | mmr=%s",
-            query[:50], ticker, k, use_mmr,
+            query[:50],
+            ticker,
+            k,
+            use_mmr,
         )
 
         # Step 1: Embed query
@@ -173,7 +176,8 @@ class Retriever:
         if not candidates:
             logger.warning(
                 "Retriever | no candidates found | query=%r | ticker=%s",
-                query[:50], ticker,
+                query[:50],
+                ticker,
             )
             return []
 
@@ -232,9 +236,7 @@ class Retriever:
 
         # Precompute pairwise text similarity using Jaccard on word sets
         # (approximation — avoids re-embedding all candidates)
-        word_sets = [
-            set(c.content.lower().split()) for c in candidates
-        ]
+        word_sets = [set(c.content.lower().split()) for c in candidates]
 
         for _ in range(min(k, len(candidates))):
             best_idx = -1
@@ -258,8 +260,7 @@ class Retriever:
 
                 # MMR score
                 mmr_score = (
-                    self.mmr_lambda * relevance
-                    - (1.0 - self.mmr_lambda) * redundancy
+                    self.mmr_lambda * relevance - (1.0 - self.mmr_lambda) * redundancy
                 )
 
                 if mmr_score > best_score:
@@ -272,7 +273,8 @@ class Retriever:
         result = [candidates[i] for i in selected_indices]
         logger.debug(
             "Retriever | MMR reranked | candidates=%d → selected=%d",
-            len(candidates), len(result),
+            len(candidates),
+            len(result),
         )
         return result
 
@@ -349,7 +351,8 @@ class Retriever:
         context = "\n\n".join(context_parts)
         logger.debug(
             "Retriever | context built | passages=%d | chars=%d",
-            len(context_parts), len(context),
+            len(context_parts),
+            len(context),
         )
         return context
 

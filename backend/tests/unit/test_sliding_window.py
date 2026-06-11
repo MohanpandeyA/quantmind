@@ -11,8 +11,8 @@ Tests cover:
 - Input validation: empty, window > n, window < 1
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from engine.sliding_window import (
     compute_log_returns,
@@ -24,10 +24,10 @@ from engine.sliding_window import (
     rolling_std,
 )
 
-
 # ---------------------------------------------------------------------------
 # rolling_mean tests
 # ---------------------------------------------------------------------------
+
 
 class TestRollingMean:
     """Tests for Simple Moving Average computation."""
@@ -90,6 +90,7 @@ class TestRollingMean:
 # rolling_std tests
 # ---------------------------------------------------------------------------
 
+
 class TestRollingStd:
     """Tests for rolling standard deviation."""
 
@@ -130,6 +131,7 @@ class TestRollingStd:
 # rolling_sharpe tests
 # ---------------------------------------------------------------------------
 
+
 class TestRollingSharpe:
     """Tests for rolling Sharpe ratio."""
 
@@ -158,7 +160,9 @@ class TestRollingSharpe:
         valid_ann = ann[~np.isnan(ann)]
         valid_non = non_ann[~np.isnan(non_ann)]
         ratio = valid_ann / valid_non
-        np.testing.assert_array_almost_equal(ratio, np.full(len(ratio), np.sqrt(252)), decimal=5)
+        np.testing.assert_array_almost_equal(
+            ratio, np.full(len(ratio), np.sqrt(252)), decimal=5
+        )
 
     def test_nan_count_equals_window_minus_1(self) -> None:
         returns = np.random.normal(0.001, 0.01, 100)
@@ -170,6 +174,7 @@ class TestRollingSharpe:
 # ---------------------------------------------------------------------------
 # exponential_moving_average tests
 # ---------------------------------------------------------------------------
+
 
 class TestEMA:
     """Tests for Exponential Moving Average."""
@@ -216,6 +221,7 @@ class TestEMA:
 # rolling_max_drawdown tests
 # ---------------------------------------------------------------------------
 
+
 class TestRollingMaxDrawdown:
     """Tests for rolling maximum drawdown."""
 
@@ -251,6 +257,7 @@ class TestRollingMaxDrawdown:
 # compute_returns tests
 # ---------------------------------------------------------------------------
 
+
 class TestComputeReturns:
     """Tests for simple period returns."""
 
@@ -284,6 +291,7 @@ class TestComputeReturns:
 # ---------------------------------------------------------------------------
 # compute_log_returns tests
 # ---------------------------------------------------------------------------
+
 
 class TestComputeLogReturns:
     """Tests for log returns."""

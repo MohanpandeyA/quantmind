@@ -49,7 +49,7 @@ import numpy as np
 import pandas as pd
 
 from config.logging_config import get_logger
-from engine.backtester import Backtester, BacktestConfig
+from engine.backtester import BacktestConfig, Backtester
 from engine.metrics import PerformanceReport, compute_full_report
 from engine.strategies.base_strategy import StrategyConfig
 from engine.strategies.macd_strategy import MACDStrategy
@@ -178,12 +178,17 @@ def run_walk_forward(
         WalkForwardResult with in-sample vs out-of-sample comparison.
     """
     import time
+
     start_time = time.perf_counter()
 
     logger.info(
         "WalkForward | starting | ticker=%s | strategy=%s | "
         "train=%dmo | test=%dmo | step=%dmo",
-        ticker, strategy_name, train_months, test_months, step_months,
+        ticker,
+        strategy_name,
+        train_months,
+        test_months,
+        step_months,
     )
 
     # Download data once (reuse across all windows)
@@ -195,7 +200,9 @@ def run_walk_forward(
         )
 
     # Generate rolling windows
-    windows_dates = _generate_windows(start_date, end_date, train_months, test_months, step_months)
+    windows_dates = _generate_windows(
+        start_date, end_date, train_months, test_months, step_months
+    )
 
     if len(windows_dates) < 2:
         raise ValueError(
@@ -207,7 +214,9 @@ def run_walk_forward(
 
     # Run each window
     window_results: List[WindowResult] = []
-    for idx, (train_start, train_end, test_start, test_end) in enumerate(windows_dates, 1):
+    for idx, (train_start, train_end, test_start, test_end) in enumerate(
+        windows_dates, 1
+    ):
         try:
             result = _run_single_window(
                 df=df,
@@ -223,7 +232,10 @@ def run_walk_forward(
             window_results.append(result)
             logger.info(
                 "WalkForward | window=%d/%d | train_sharpe=%.2f | test_sharpe=%.2f",
-                idx, len(windows_dates), result.train_sharpe, result.test_sharpe,
+                idx,
+                len(windows_dates),
+                result.train_sharpe,
+                result.test_sharpe,
             )
         except Exception as e:
             logger.warning("WalkForward | window=%d failed | %s", idx, e)
@@ -254,7 +266,11 @@ def run_walk_forward(
     combined_equity = _stitch_equity_curves(window_results)
 
     # Combined metrics
-    combined_return = (combined_equity[-1] / combined_equity[0] - 1) if len(combined_equity) > 1 else 0.0
+    combined_return = (
+        (combined_equity[-1] / combined_equity[0] - 1)
+        if len(combined_equity) > 1
+        else 0.0
+    )
     combined_mdd = _compute_max_drawdown(np.array(combined_equity))
 
     duration_ms = (time.perf_counter() - start_time) * 1000
@@ -262,8 +278,12 @@ def run_walk_forward(
     logger.info(
         "WalkForward | complete | ticker=%s | in_sample=%.2f | out_of_sample=%.2f | "
         "robustness=%.2f | verdict=%s | time=%.0fms",
-        ticker, in_sample_sharpe, out_of_sample_sharpe,
-        robustness_ratio, verdict, duration_ms,
+        ticker,
+        in_sample_sharpe,
+        out_of_sample_sharpe,
+        robustness_ratio,
+        verdict,
+        duration_ms,
     )
 
     return WalkForwardResult(
@@ -286,7 +306,10 @@ def run_walk_forward(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _download_data(ticker: str, start_date: str, end_date: str) -> Optional[pd.DataFrame]:
+
+def _download_data(
+    ticker: str, start_date: str, end_date: str
+) -> Optional[pd.DataFrame]:
     """Download OHLCV data once for all windows.
 
     Args:
@@ -300,16 +323,17 @@ def _download_data(ticker: str, start_date: str, end_date: str) -> Optional[pd.D
     warnings.filterwarnings("ignore")
     try:
         import yfinance as yf
-        raw = yf.download(ticker, start=start_date, end=end_date,
-                          auto_adjust=True, progress=False)
+
+        raw = yf.download(
+            ticker, start=start_date, end=end_date, auto_adjust=True, progress=False
+        )
         if raw.empty:
             return None
 
         # Flatten MultiIndex columns
         if hasattr(raw.columns, "levels"):
             raw.columns = [
-                c[0].lower() if isinstance(c, tuple) else c.lower()
-                for c in raw.columns
+                c[0].lower() if isinstance(c, tuple) else c.lower() for c in raw.columns
             ]
         else:
             raw.columns = [c.lower() for c in raw.columns]
@@ -354,12 +378,14 @@ def _generate_windows(
         if test_end > end:
             break
 
-        windows.append((
-            train_start.isoformat(),
-            train_end.isoformat(),
-            test_start.isoformat(),
-            test_end.isoformat(),
-        ))
+        windows.append(
+            (
+                train_start.isoformat(),
+                train_end.isoformat(),
+                test_start.isoformat(),
+                test_end.isoformat(),
+            )
+        )
 
         current = _add_months(current, step_months)
 
@@ -379,8 +405,23 @@ def _add_months(d: date, months: int) -> date:
     month = d.month - 1 + months
     year = d.year + month // 12
     month = month % 12 + 1
-    day = min(d.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
-                       else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+    day = min(
+        d.day,
+        [
+            31,
+            29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+            31,
+            30,
+            31,
+            30,
+            31,
+            31,
+            30,
+            31,
+            30,
+            31,
+        ][month - 1],
+    )
     return date(year, month, day)
 
 
@@ -494,7 +535,9 @@ def _optimize_on_window(
                 continue
 
         result = _backtest_on_window(df, strategy_name, params)
-        score = result.get(optimize_for if optimize_for != "calmar" else "calmar_ratio", 0.0)
+        score = result.get(
+            optimize_for if optimize_for != "calmar" else "calmar_ratio", 0.0
+        )
 
         if score > best_score:
             best_score = score
@@ -519,8 +562,14 @@ def _backtest_on_window(
         Dict with sharpe, total_return, max_drawdown, n_trades, equity_curve.
     """
     if len(df) < 10:
-        return {"sharpe": 0.0, "total_return": 0.0, "max_drawdown": 0.0,
-                "n_trades": 0, "equity_curve": [100_000.0], "calmar_ratio": 0.0}
+        return {
+            "sharpe": 0.0,
+            "total_return": 0.0,
+            "max_drawdown": 0.0,
+            "n_trades": 0,
+            "equity_curve": [100_000.0],
+            "calmar_ratio": 0.0,
+        }
 
     config = StrategyConfig(
         initial_capital=100_000.0,
@@ -555,8 +604,14 @@ def _backtest_on_window(
             "calmar_ratio": report.calmar_ratio,
         }
     except Exception:
-        return {"sharpe": 0.0, "total_return": 0.0, "max_drawdown": 0.0,
-                "n_trades": 0, "equity_curve": [100_000.0], "calmar_ratio": 0.0}
+        return {
+            "sharpe": 0.0,
+            "total_return": 0.0,
+            "max_drawdown": 0.0,
+            "n_trades": 0,
+            "equity_curve": [100_000.0],
+            "calmar_ratio": 0.0,
+        }
 
 
 def _simulate(
@@ -627,7 +682,9 @@ def _simulate(
         else:
             equity_curve[i] = capital
 
-    returns = np.diff(equity_curve) / np.where(equity_curve[:-1] > 0, equity_curve[:-1], 1.0)
+    returns = np.diff(equity_curve) / np.where(
+        equity_curve[:-1] > 0, equity_curve[:-1], 1.0
+    )
     return equity_curve, returns, trade_returns
 
 

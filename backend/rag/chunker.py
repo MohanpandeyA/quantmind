@@ -49,22 +49,22 @@ from rag.sources.base_loader import Document, DocumentMetadata
 logger = get_logger(__name__)
 
 # Default chunking parameters
-DEFAULT_CHUNK_SIZE = 1000      # Characters per chunk (~200-250 tokens)
-DEFAULT_CHUNK_OVERLAP = 200    # Overlap between consecutive chunks
-DEFAULT_MIN_CHUNK_SIZE = 100   # Skip chunks smaller than this
+DEFAULT_CHUNK_SIZE = 1000  # Characters per chunk (~200-250 tokens)
+DEFAULT_CHUNK_OVERLAP = 200  # Overlap between consecutive chunks
+DEFAULT_MIN_CHUNK_SIZE = 100  # Skip chunks smaller than this
 
 # Separators tried in order (most preferred → least preferred)
 # This is the "recursive" part of RecursiveCharacterTextSplitter
 SEPARATORS = [
-    "\n\n",    # Paragraph break (best — preserves semantic units)
-    "\n",      # Line break
-    ". ",      # Sentence end
-    "! ",      # Exclamation sentence
-    "? ",      # Question sentence
-    "; ",      # Semicolon
-    ", ",      # Comma
-    " ",       # Word boundary
-    "",        # Character boundary (last resort)
+    "\n\n",  # Paragraph break (best — preserves semantic units)
+    "\n",  # Line break
+    ". ",  # Sentence end
+    "! ",  # Exclamation sentence
+    "? ",  # Question sentence
+    "; ",  # Semicolon
+    ", ",  # Comma
+    " ",  # Word boundary
+    "",  # Character boundary (last resort)
 ]
 
 
@@ -249,7 +249,9 @@ class RecursiveChunker:
         total_words = sum(c.word_count() for c in all_chunks)
         logger.info(
             "RecursiveChunker | batch chunked | docs=%d | chunks=%d | total_words=%d",
-            len(documents), len(all_chunks), total_words,
+            len(documents),
+            len(all_chunks),
+            total_words,
         )
         return all_chunks
 

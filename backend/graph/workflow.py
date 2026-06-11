@@ -57,11 +57,9 @@ def build_workflow() -> Any:
         >>> result = await app.ainvoke(state)
     """
     try:
-        from langgraph.graph import StateGraph, END  # type: ignore[import]
+        from langgraph.graph import END, StateGraph  # type: ignore[import]
     except ImportError:
-        raise ImportError(
-            "langgraph not installed. Run: pip install langgraph"
-        )
+        raise ImportError("langgraph not installed. Run: pip install langgraph")
 
     from agents.backtest_agent import backtest_agent
     from agents.explainer_agent import explainer_agent
@@ -77,7 +75,7 @@ def build_workflow() -> Any:
     # --- Register all agent nodes ---
     workflow.add_node("research_agent", research_agent)
     workflow.add_node("rag_agent", rag_agent)
-    workflow.add_node("sentiment_agent", sentiment_agent)   # NEW: 7th agent
+    workflow.add_node("sentiment_agent", sentiment_agent)  # NEW: 7th agent
     workflow.add_node("strategy_agent", strategy_agent)
     workflow.add_node("backtest_agent", backtest_agent)
     workflow.add_node("risk_agent", risk_agent)
@@ -86,7 +84,7 @@ def build_workflow() -> Any:
     # --- Define sequential edges ---
     workflow.set_entry_point("research_agent")
     workflow.add_edge("research_agent", "rag_agent")
-    workflow.add_edge("rag_agent", "sentiment_agent")       # NEW: RAG → Sentiment
+    workflow.add_edge("rag_agent", "sentiment_agent")  # NEW: RAG → Sentiment
     workflow.add_edge("sentiment_agent", "strategy_agent")  # NEW: Sentiment → Strategy
     workflow.add_edge("strategy_agent", "backtest_agent")
     workflow.add_edge("backtest_agent", "risk_agent")
@@ -98,7 +96,7 @@ def build_workflow() -> Any:
         should_retry,
         {
             "approved": "explainer_agent",  # Risk OK → generate explanation
-            "retry": "strategy_agent",       # Risk rejected → try different strategy
+            "retry": "strategy_agent",  # Risk rejected → try different strategy
         },
     )
 
@@ -167,7 +165,8 @@ async def run_analysis(
 
     logger.info(
         "Workflow | starting | ticker=%s | query=%r",
-        ticker, query[:50],
+        ticker,
+        query[:50],
     )
 
     try:
@@ -193,7 +192,10 @@ async def run_analysis(
         duration_ms = (time.perf_counter() - start_time) * 1000
         logger.error(
             "Workflow | failed | ticker=%s | %s | time=%.0fms",
-            ticker, e, duration_ms, exc_info=True,
+            ticker,
+            e,
+            duration_ms,
+            exc_info=True,
         )
         return {
             **initial_state,

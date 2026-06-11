@@ -15,12 +15,12 @@ from __future__ import annotations
 import pytest
 
 from rag.chunker import Chunk, RecursiveChunker
-from rag.sources.base_loader import Document, DocumentMetadata, DocType
-
+from rag.sources.base_loader import DocType, Document, DocumentMetadata
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def make_metadata(ticker: str = "AAPL") -> DocumentMetadata:
     return DocumentMetadata(
@@ -51,6 +51,7 @@ def make_long_document(n_paragraphs: int = 10) -> Document:
 # ---------------------------------------------------------------------------
 # Chunk dataclass tests
 # ---------------------------------------------------------------------------
+
 
 class TestChunk:
     def test_chunk_id_auto_computed(self) -> None:
@@ -119,6 +120,7 @@ class TestChunk:
 # RecursiveChunker initialization tests
 # ---------------------------------------------------------------------------
 
+
 class TestRecursiveChunkerInit:
     def test_default_params(self) -> None:
         chunker = RecursiveChunker()
@@ -148,6 +150,7 @@ class TestRecursiveChunkerInit:
 # chunk_document() tests
 # ---------------------------------------------------------------------------
 
+
 class TestChunkDocument:
     def test_empty_document_returns_empty_list(self) -> None:
         chunker = RecursiveChunker()
@@ -163,7 +166,9 @@ class TestChunkDocument:
 
     def test_short_document_returns_single_chunk(self) -> None:
         # Use min_chunk_size=10 so the short doc isn't filtered out
-        chunker = RecursiveChunker(chunk_size=1000, chunk_overlap=200, min_chunk_size=10)
+        chunker = RecursiveChunker(
+            chunk_size=1000, chunk_overlap=200, min_chunk_size=10
+        )
         doc = make_document("Apple revenue grew 15% in Q3 2024.")
         chunks = chunker.chunk_document(doc)
         assert len(chunks) == 1
@@ -221,9 +226,9 @@ class TestChunkDocument:
         chunks = chunker.chunk_document(doc)
         for chunk in chunks:
             # Allow some tolerance for word-boundary splitting
-            assert chunk.char_count() <= chunk_size * 2, (
-                f"Chunk too large: {chunk.char_count()} chars (limit: {chunk_size * 2})"
-            )
+            assert (
+                chunk.char_count() <= chunk_size * 2
+            ), f"Chunk too large: {chunk.char_count()} chars (limit: {chunk_size * 2})"
 
     def test_min_chunk_size_filters_small_chunks(self) -> None:
         chunker = RecursiveChunker(
@@ -241,6 +246,7 @@ class TestChunkDocument:
 # Overlap tests
 # ---------------------------------------------------------------------------
 
+
 class TestChunkOverlap:
     def test_overlap_preserves_context(self) -> None:
         """Consecutive chunks should share some content (overlap)."""
@@ -256,7 +262,9 @@ class TestChunkOverlap:
             words_1 = set(chunks[1].content.split())
             overlap = words_0 & words_1
             # There should be some overlap
-            assert len(overlap) > 0, "Consecutive chunks should share some words (overlap)"
+            assert (
+                len(overlap) > 0
+            ), "Consecutive chunks should share some words (overlap)"
 
     def test_larger_overlap_more_shared_content(self) -> None:
         """Larger overlap should result in more shared content."""
@@ -271,12 +279,12 @@ class TestChunkOverlap:
 
         if len(chunks_small) >= 2 and len(chunks_large) >= 2:
             overlap_small = len(
-                set(chunks_small[0].content.split()) &
-                set(chunks_small[1].content.split())
+                set(chunks_small[0].content.split())
+                & set(chunks_small[1].content.split())
             )
             overlap_large = len(
-                set(chunks_large[0].content.split()) &
-                set(chunks_large[1].content.split())
+                set(chunks_large[0].content.split())
+                & set(chunks_large[1].content.split())
             )
             assert overlap_large >= overlap_small
 
@@ -284,6 +292,7 @@ class TestChunkOverlap:
 # ---------------------------------------------------------------------------
 # chunk_documents() batch tests
 # ---------------------------------------------------------------------------
+
 
 class TestChunkDocuments:
     def test_empty_list_returns_empty(self) -> None:
@@ -320,6 +329,7 @@ class TestChunkDocuments:
 # ---------------------------------------------------------------------------
 # Separator hierarchy tests
 # ---------------------------------------------------------------------------
+
 
 class TestSeparatorHierarchy:
     def test_splits_on_paragraph_boundary(self) -> None:

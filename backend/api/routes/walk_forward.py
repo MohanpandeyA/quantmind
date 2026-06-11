@@ -33,6 +33,7 @@ router = APIRouter(prefix="/walk-forward", tags=["Walk-Forward Validation"])
 # Schemas
 # ---------------------------------------------------------------------------
 
+
 class WalkForwardRequest(BaseModel):
     """Request body for POST /walk-forward."""
 
@@ -71,6 +72,7 @@ class WalkForwardRequest(BaseModel):
 # Route
 # ---------------------------------------------------------------------------
 
+
 @router.post("")
 async def walk_forward_validation(request: WalkForwardRequest) -> JSONResponse:
     """Run walk-forward validation for a strategy.
@@ -85,10 +87,11 @@ async def walk_forward_validation(request: WalkForwardRequest) -> JSONResponse:
         JSON with in-sample vs out-of-sample comparison and robustness verdict.
     """
     logger.info(
-        "WalkForward | starting | ticker=%s | strategy=%s | "
-        "train=%dmo | test=%dmo",
-        request.ticker, request.strategy,
-        request.train_months, request.test_months,
+        "WalkForward | starting | ticker=%s | strategy=%s | " "train=%dmo | test=%dmo",
+        request.ticker,
+        request.strategy,
+        request.train_months,
+        request.test_months,
     )
 
     try:
@@ -110,9 +113,7 @@ async def walk_forward_validation(request: WalkForwardRequest) -> JSONResponse:
         response_dict = _sanitize(result.__dict__)
 
         # Serialize window results
-        response_dict["windows"] = [
-            _sanitize(w.__dict__) for w in result.windows
-        ]
+        response_dict["windows"] = [_sanitize(w.__dict__) for w in result.windows]
 
         logger.info(
             "WalkForward | complete | ticker=%s | in_sample=%.2f | "
@@ -134,7 +135,9 @@ async def walk_forward_validation(request: WalkForwardRequest) -> JSONResponse:
     except Exception as e:
         logger.error(
             "WalkForward | failed | ticker=%s | %s",
-            request.ticker, e, exc_info=True,
+            request.ticker,
+            e,
+            exc_info=True,
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -27,9 +27,9 @@ from config.logging_config import get_logger
 from config.settings import settings
 from rag.sources.base_loader import (
     BaseLoader,
+    DocType,
     Document,
     DocumentMetadata,
-    DocType,
     LoaderError,
     RateLimitError,
 )
@@ -122,7 +122,10 @@ class NewsLoader(BaseLoader):
 
         logger.info(
             "NewsLoader | loading | ticker=%s | newsapi=%s | rss=%s | max=%d",
-            ticker, self.use_newsapi, self.use_rss, max_articles,
+            ticker,
+            self.use_newsapi,
+            self.use_rss,
+            max_articles,
         )
 
         tasks = []
@@ -197,16 +200,20 @@ class NewsLoader(BaseLoader):
             ) as resp:
                 if resp.status == 429:
                     raise RateLimitError(
-                        self.get_source_name(), ticker,
-                        "NewsAPI rate limit exceeded (100 req/day on free tier)"
+                        self.get_source_name(),
+                        ticker,
+                        "NewsAPI rate limit exceeded (100 req/day on free tier)",
                     )
                 if resp.status == 401:
-                    logger.warning("NewsLoader | NewsAPI key invalid | ticker=%s", ticker)
+                    logger.warning(
+                        "NewsLoader | NewsAPI key invalid | ticker=%s", ticker
+                    )
                     return []
                 if resp.status != 200:
                     logger.warning(
                         "NewsLoader | NewsAPI error | status=%d | ticker=%s",
-                        resp.status, ticker,
+                        resp.status,
+                        ticker,
                     )
                     return []
 
@@ -243,8 +250,7 @@ class NewsLoader(BaseLoader):
         """
         # Fetch all RSS feeds concurrently
         tasks = [
-            self._fetch_single_rss(name, url, ticker)
-            for name, url in RSS_FEEDS.items()
+            self._fetch_single_rss(name, url, ticker) for name, url in RSS_FEEDS.items()
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -315,7 +321,9 @@ class NewsLoader(BaseLoader):
                 title=title[:200],
             )
 
-            documents.append(Document(content=content[:MAX_ARTICLE_CHARS], metadata=metadata))
+            documents.append(
+                Document(content=content[:MAX_ARTICLE_CHARS], metadata=metadata)
+            )
 
         return documents
 
@@ -359,7 +367,9 @@ class NewsLoader(BaseLoader):
             return None
 
         # Parse date
-        date_str = published_at[:10] if published_at else datetime.now().strftime("%Y-%m-%d")
+        date_str = (
+            published_at[:10] if published_at else datetime.now().strftime("%Y-%m-%d")
+        )
 
         metadata = DocumentMetadata(
             ticker=ticker.upper(),

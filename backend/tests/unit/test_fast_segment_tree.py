@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import time
 
-import pytest
 import numpy as np
+import pytest
 
 from engine.fast_segment_tree import (
     FastMinSegmentTree,
@@ -24,10 +24,10 @@ from engine.fast_segment_tree import (
 )
 from engine.segment_tree import AggregationType, SegmentTree
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def sample_prices() -> list[float]:
@@ -47,6 +47,7 @@ def fast_min_tree(sample_prices: list[float]) -> FastMinSegmentTree:
 # ---------------------------------------------------------------------------
 # FastSegmentTree (MAX) construction tests
 # ---------------------------------------------------------------------------
+
 
 class TestFastSegmentTreeConstruction:
     """Tests for FastSegmentTree initialization."""
@@ -83,6 +84,7 @@ class TestFastSegmentTreeConstruction:
 # ---------------------------------------------------------------------------
 # FastSegmentTree MAX query tests
 # ---------------------------------------------------------------------------
+
 
 class TestFastSegmentTreeQueries:
     """Tests for range maximum queries."""
@@ -125,6 +127,7 @@ class TestFastSegmentTreeQueries:
 # FastSegmentTree update tests
 # ---------------------------------------------------------------------------
 
+
 class TestFastSegmentTreeUpdate:
     """Tests for point updates."""
 
@@ -147,9 +150,7 @@ class TestFastSegmentTreeUpdate:
         fast_max_tree.update(6, 1.0)
         assert fast_max_tree.query(0, 5) == 20.0
 
-    def test_update_out_of_bounds_raises(
-        self, fast_max_tree: FastSegmentTree
-    ) -> None:
+    def test_update_out_of_bounds_raises(self, fast_max_tree: FastSegmentTree) -> None:
         with pytest.raises(IndexError):
             fast_max_tree.update(7, 50.0)
 
@@ -163,6 +164,7 @@ class TestFastSegmentTreeUpdate:
 # ---------------------------------------------------------------------------
 # FastMinSegmentTree tests
 # ---------------------------------------------------------------------------
+
 
 class TestFastMinSegmentTree:
     """Tests for range minimum queries."""
@@ -190,6 +192,7 @@ class TestFastMinSegmentTree:
 # ---------------------------------------------------------------------------
 # Correctness vs recursive SegmentTree
 # ---------------------------------------------------------------------------
+
 
 class TestFastVsRecursiveCorrectness:
     """Verify FastSegmentTree gives identical results to recursive SegmentTree."""
@@ -234,6 +237,7 @@ class TestFastVsRecursiveCorrectness:
 # Performance test: iterative faster than recursive
 # ---------------------------------------------------------------------------
 
+
 class TestFastSegmentTreePerformance:
     """Verify iterative tree is faster than recursive for large datasets."""
 
@@ -245,8 +249,10 @@ class TestFastSegmentTreePerformance:
         fast = FastSegmentTree(data)
         recursive = SegmentTree(data, AggregationType.MAX)
 
-        queries = [(np.random.randint(0, n - 100), np.random.randint(n - 100, n))
-                   for _ in range(1000)]
+        queries = [
+            (np.random.randint(0, n - 100), np.random.randint(n - 100, n))
+            for _ in range(1000)
+        ]
 
         # Time iterative
         t0 = time.perf_counter()
@@ -271,6 +277,7 @@ class TestFastSegmentTreePerformance:
 # ---------------------------------------------------------------------------
 # build_fast_price_trees tests
 # ---------------------------------------------------------------------------
+
 
 class TestBuildFastPriceTrees:
     """Tests for the build_fast_price_trees() helper."""

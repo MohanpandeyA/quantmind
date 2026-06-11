@@ -17,18 +17,18 @@ import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 import numpy as np
+import pytest
 
 from engine.live_trader import LiveBar, LiveTrader, LiveTraderConfig, TradeRecord
 from engine.strategies.base_strategy import Signal, StrategyConfig
-from engine.strategies.momentum import MomentumStrategy
 from engine.strategies.mean_reversion import MeanReversionStrategy
-
+from engine.strategies.momentum import MomentumStrategy
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def momentum_strategy() -> MomentumStrategy:
@@ -83,6 +83,7 @@ def make_bar(
 # LiveTraderConfig tests
 # ---------------------------------------------------------------------------
 
+
 class TestLiveTraderConfig:
     """Tests for LiveTraderConfig dataclass."""
 
@@ -109,6 +110,7 @@ class TestLiveTraderConfig:
 # ---------------------------------------------------------------------------
 # LiveTrader initialization tests
 # ---------------------------------------------------------------------------
+
 
 class TestLiveTraderInit:
     """Tests for LiveTrader initialization."""
@@ -138,6 +140,7 @@ class TestLiveTraderInit:
 # ---------------------------------------------------------------------------
 # on_bar() processing tests
 # ---------------------------------------------------------------------------
+
 
 class TestOnBarProcessing:
     """Tests for the on_bar() hot path."""
@@ -202,9 +205,7 @@ class TestOnBarProcessing:
     def test_bar_count_increments(self, live_trader: LiveTrader) -> None:
         live_trader.strategy.get_latest_signal = MagicMock(return_value=Signal.HOLD)
         for _ in range(5):
-            asyncio.get_event_loop().run_until_complete(
-                live_trader.on_bar(make_bar())
-            )
+            asyncio.get_event_loop().run_until_complete(live_trader.on_bar(make_bar()))
         assert live_trader._bar_count == 5
 
     def test_signal_latency_tracked(self, live_trader: LiveTrader) -> None:
@@ -217,6 +218,7 @@ class TestOnBarProcessing:
 # ---------------------------------------------------------------------------
 # Risk halt tests
 # ---------------------------------------------------------------------------
+
 
 class TestRiskHalt:
     """Tests for automatic trading halt on risk limit breach."""
@@ -253,6 +255,7 @@ class TestRiskHalt:
 # Trade record tests
 # ---------------------------------------------------------------------------
 
+
 class TestTradeRecord:
     """Tests for TradeRecord dataclass."""
 
@@ -288,6 +291,7 @@ class TestTradeRecord:
 # Position sizing tests
 # ---------------------------------------------------------------------------
 
+
 class TestPositionSizing:
     """Tests for _compute_qty() position sizing."""
 
@@ -311,6 +315,7 @@ class TestPositionSizing:
 # Performance summary tests
 # ---------------------------------------------------------------------------
 
+
 class TestPerformanceSummary:
     """Tests for get_performance_summary()."""
 
@@ -320,8 +325,13 @@ class TestPerformanceSummary:
 
         summary = live_trader.get_performance_summary()
         required_keys = {
-            "strategy", "symbol", "n_trades", "bars_processed",
-            "current_position", "total_return", "current_drawdown",
+            "strategy",
+            "symbol",
+            "n_trades",
+            "bars_processed",
+            "current_position",
+            "total_return",
+            "current_drawdown",
         }
         assert required_keys.issubset(set(summary.keys()))
 
@@ -337,6 +347,7 @@ class TestPerformanceSummary:
 # ---------------------------------------------------------------------------
 # Simulation loop integration test
 # ---------------------------------------------------------------------------
+
 
 class TestSimulationLoop:
     """Tests for the simulation loop (no API keys needed)."""
@@ -360,7 +371,7 @@ class TestSimulationLoop:
 
             for _ in range(20):
                 ret = np.random.normal(0.0005, 0.015)
-                price *= (1 + ret)
+                price *= 1 + ret
                 bar = LiveBar(
                     symbol=config.symbol,
                     timestamp=__import__("datetime").datetime.utcnow(),

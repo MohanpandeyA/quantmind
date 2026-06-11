@@ -28,6 +28,7 @@ Retry logic:
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+
 from typing_extensions import TypedDict
 
 
@@ -194,9 +195,9 @@ class TradingState(TypedDict, total=False):
     cached_price_key: str
 
     # --- SentimentAgent outputs ---
-    sentiment_score: float          # -1.0 (very bearish) to +1.0 (very bullish)
-    sentiment_label: str            # "BULLISH" / "BEARISH" / "NEUTRAL"
-    sentiment_confidence: float     # 0.0 to 1.0
+    sentiment_score: float  # -1.0 (very bearish) to +1.0 (very bullish)
+    sentiment_label: str  # "BULLISH" / "BEARISH" / "NEUTRAL"
+    sentiment_confidence: float  # 0.0 to 1.0
     sentiment_details: Dict[str, Any]  # top positive/negative sentences
 
     # --- RiskAgent outputs ---

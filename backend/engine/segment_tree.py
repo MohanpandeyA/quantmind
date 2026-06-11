@@ -81,9 +81,7 @@ class SegmentTree:
         self.tree: List[float] = [self._identity] * (4 * self.n)
 
         self._build(data, node=1, start=0, end=self.n - 1)
-        logger.debug(
-            "SegmentTree built | n=%d | agg=%s", self.n, agg_type.value
-        )
+        logger.debug("SegmentTree built | n=%d | agg=%s", self.n, agg_type.value)
 
     # ------------------------------------------------------------------
     # Public API
@@ -129,9 +127,7 @@ class SegmentTree:
             14.0
         """
         if not (0 <= index < self.n):
-            raise IndexError(
-                f"Index {index} out of bounds for tree of size {self.n}."
-            )
+            raise IndexError(f"Index {index} out of bounds for tree of size {self.n}.")
         self._update(node=1, start=0, end=self.n - 1, index=index, value=value)
         logger.debug("update(index=%d, value=%.4f)", index, value)
 
@@ -177,9 +173,7 @@ class SegmentTree:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _build(
-        self, data: List[float], node: int, start: int, end: int
-    ) -> None:
+    def _build(self, data: List[float], node: int, start: int, end: int) -> None:
         """Recursively build the segment tree.
 
         Args:
@@ -200,9 +194,7 @@ class SegmentTree:
         self._build(data, right_child, mid + 1, end)
         self.tree[node] = self._agg_fn(self.tree[left_child], self.tree[right_child])
 
-    def _query(
-        self, node: int, start: int, end: int, left: int, right: int
-    ) -> float:
+    def _query(self, node: int, start: int, end: int, left: int, right: int) -> float:
         """Recursively query the segment tree.
 
         Args:
@@ -251,9 +243,7 @@ class SegmentTree:
         else:
             self._update(2 * node + 1, mid + 1, end, index, value)
 
-        self.tree[node] = self._agg_fn(
-            self.tree[2 * node], self.tree[2 * node + 1]
-        )
+        self.tree[node] = self._agg_fn(self.tree[2 * node], self.tree[2 * node + 1])
 
     def _validate_range(self, left: int, right: int) -> None:
         """Validate query range indices.
@@ -266,9 +256,7 @@ class SegmentTree:
             ValueError: If range is invalid.
         """
         if left > right:
-            raise ValueError(
-                f"left ({left}) must be <= right ({right})."
-            )
+            raise ValueError(f"left ({left}) must be <= right ({right}).")
         if left < 0 or right >= self.n:
             raise ValueError(
                 f"Range [{left}, {right}] out of bounds for size {self.n}."
@@ -348,7 +336,5 @@ def build_price_trees(
 
     max_tree = SegmentTree(highs, AggregationType.MAX)
     min_tree = SegmentTree(lows, AggregationType.MIN)
-    logger.info(
-        "Price trees built | n=%d | max_tree + min_tree ready", len(highs)
-    )
+    logger.info("Price trees built | n=%d | max_tree + min_tree ready", len(highs))
     return max_tree, min_tree

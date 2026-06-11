@@ -39,6 +39,7 @@ logger = get_logger(__name__)
 # OnlineEMA — Exponential Moving Average (O(1) per tick)
 # ---------------------------------------------------------------------------
 
+
 class OnlineEMA:
     """Incremental Exponential Moving Average. O(1) update per price tick.
 
@@ -122,6 +123,7 @@ class OnlineEMA:
 # ---------------------------------------------------------------------------
 # OnlineRollingStats — Rolling Mean + Std using Welford's Algorithm (O(1))
 # ---------------------------------------------------------------------------
+
 
 class OnlineRollingStats:
     """Rolling mean and standard deviation using Welford's algorithm. O(1) per tick.
@@ -232,6 +234,7 @@ class OnlineRollingStats:
 # ---------------------------------------------------------------------------
 # OnlineZScore — Rolling Z-Score for Mean Reversion (O(1))
 # ---------------------------------------------------------------------------
+
 
 class OnlineZScore:
     """Incremental z-score for mean reversion signals. O(1) per tick.
@@ -345,6 +348,7 @@ class OnlineZScore:
 # OnlineRollingSharpe — Rolling Sharpe Ratio (O(1))
 # ---------------------------------------------------------------------------
 
+
 class OnlineRollingSharpe:
     """Incremental rolling Sharpe ratio. O(1) per return update.
 
@@ -414,6 +418,7 @@ class OnlineRollingSharpe:
 # ---------------------------------------------------------------------------
 # IncrementalMetrics — Real-time risk monitoring (O(1) per update)
 # ---------------------------------------------------------------------------
+
 
 class IncrementalMetrics:
     """Real-time portfolio risk metrics updated in O(1) per bar.
@@ -553,9 +558,11 @@ class IncrementalMetrics:
         return {
             "total_return": round(self.total_return, 6),
             "current_drawdown": round(self.current_drawdown, 6),
-            "current_sharpe": round(self.current_sharpe, 4)
-            if not math.isnan(self.current_sharpe)
-            else 0.0,
+            "current_sharpe": (
+                round(self.current_sharpe, 4)
+                if not math.isnan(self.current_sharpe)
+                else 0.0
+            ),
             "peak_equity": round(self._peak_equity, 2),
             "current_equity": round(self._current_equity, 2),
             "n_updates": self._n_updates,

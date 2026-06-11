@@ -31,9 +31,9 @@ from engine.strategies.base_strategy import BaseStrategy, Signal, StrategyConfig
 logger = get_logger(__name__)
 
 # Default hyperparameters
-DEFAULT_WINDOW = 20          # Rolling window for mean/std computation
-DEFAULT_Z_THRESHOLD = 2.0    # Number of std deviations to trigger signal
-DEFAULT_EXIT_THRESHOLD = 0.0 # Z-score at which to exit (0 = at the mean)
+DEFAULT_WINDOW = 20  # Rolling window for mean/std computation
+DEFAULT_Z_THRESHOLD = 2.0  # Number of std deviations to trigger signal
+DEFAULT_EXIT_THRESHOLD = 0.0  # Z-score at which to exit (0 = at the mean)
 
 
 class MeanReversionStrategy(BaseStrategy):
@@ -154,7 +154,9 @@ class MeanReversionStrategy(BaseStrategy):
                 self._live_position = Signal.BUY.value
                 logger.debug(
                     "MR BUY entry | z=%.3f | threshold=%.1f | price=%.2f",
-                    z, self.z_threshold, price,
+                    z,
+                    self.z_threshold,
+                    price,
                 )
                 return Signal.BUY
 
@@ -162,7 +164,9 @@ class MeanReversionStrategy(BaseStrategy):
                 self._live_position = Signal.SELL.value
                 logger.debug(
                     "MR SELL entry | z=%.3f | threshold=%.1f | price=%.2f",
-                    z, self.z_threshold, price,
+                    z,
+                    self.z_threshold,
+                    price,
                 )
                 return Signal.SELL
 
@@ -170,18 +174,14 @@ class MeanReversionStrategy(BaseStrategy):
             # Exit long when price reverts to mean
             if z >= self.exit_threshold:
                 self._live_position = Signal.HOLD.value
-                logger.debug(
-                    "MR SELL exit (long) | z=%.3f | price=%.2f", z, price
-                )
+                logger.debug("MR SELL exit (long) | z=%.3f | price=%.2f", z, price)
                 return Signal.SELL
 
         elif self._live_position == Signal.SELL.value:
             # Exit short when price reverts to mean
             if z <= self.exit_threshold:
                 self._live_position = Signal.HOLD.value
-                logger.debug(
-                    "MR BUY exit (short) | z=%.3f | price=%.2f", z, price
-                )
+                logger.debug("MR BUY exit (short) | z=%.3f | price=%.2f", z, price)
                 return Signal.BUY
 
         return Signal.HOLD
@@ -238,9 +238,9 @@ class MeanReversionStrategy(BaseStrategy):
         # Compute z-scores (NaN where window not yet full)
         z_scores = np.full(n, np.nan)
         valid_mask = ~np.isnan(means) & ~np.isnan(stds) & (stds > 1e-10)
-        z_scores[valid_mask] = (
-            (closes[valid_mask] - means[valid_mask]) / stds[valid_mask]
-        )
+        z_scores[valid_mask] = (closes[valid_mask] - means[valid_mask]) / stds[
+            valid_mask
+        ]
 
         # Generate signals with position state tracking
         signals = np.full(n, Signal.HOLD.value, dtype=int)
@@ -273,7 +273,10 @@ class MeanReversionStrategy(BaseStrategy):
         n_sells = int(np.sum(signals == Signal.SELL.value))
         logger.info(
             "%s | signals generated | n=%d | buys=%d | sells=%d",
-            self.get_name(), n, n_buys, n_sells,
+            self.get_name(),
+            n,
+            n_buys,
+            n_sells,
         )
         return signals
 

@@ -13,32 +13,26 @@ All tests use mocks — no real API calls, no yfinance, no Groq.
 from __future__ import annotations
 
 import asyncio
-import pytest
-import numpy as np
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from graph.state import (
-    TradingState,
-    BacktestResults,
-    MarketData,
-    RiskMetrics,
-    create_initial_state,
-)
-from agents.strategy_agent import (
-    strategy_agent,
-    _select_momentum,
-    _select_mean_reversion,
-)
-from agents.risk_agent import (
-    risk_agent,
-    should_retry,
-    _compute_risk_score,
-    _get_risk_level,
-)
+import numpy as np
+import pytest
+
 from agents.explainer_agent import (
+    _generate_fallback_explanation,
     _parse_signal,
     _signal_from_backtest,
-    _generate_fallback_explanation,
+)
+from agents.risk_agent import (
+    _compute_risk_score,
+    _get_risk_level,
+    risk_agent,
+    should_retry,
+)
+from agents.strategy_agent import (
+    _select_mean_reversion,
+    _select_momentum,
+    strategy_agent,
 )
 from api.schemas import (
     AnalysisRequest,
@@ -47,11 +41,18 @@ from api.schemas import (
     MarketDataResponse,
     RiskMetricsResponse,
 )
-
+from graph.state import (
+    BacktestResults,
+    MarketData,
+    RiskMetrics,
+    TradingState,
+    create_initial_state,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def make_market_data(
     ticker: str = "AAPL",
@@ -138,6 +139,7 @@ def make_state(
 # TradingState tests
 # ---------------------------------------------------------------------------
 
+
 class TestTradingState:
     def test_create_initial_state_ticker_uppercased(self) -> None:
         state = create_initial_state("aapl", "test query")
@@ -165,6 +167,7 @@ class TestTradingState:
 # ---------------------------------------------------------------------------
 # StrategyAgent tests
 # ---------------------------------------------------------------------------
+
 
 class TestStrategyAgent:
     def test_select_momentum_returns_correct_strategy(self) -> None:
@@ -206,7 +209,9 @@ class TestStrategyAgent:
         # On retry from momentum → should switch to mean_reversion
         assert result["selected_strategy"] == "mean_reversion"
 
-    def test_strategy_agent_retry_from_mean_reversion_switches_to_momentum(self) -> None:
+    def test_strategy_agent_retry_from_mean_reversion_switches_to_momentum(
+        self,
+    ) -> None:
         state = make_state(retry_count=1, selected_strategy="mean_reversion")
         result = asyncio.get_event_loop().run_until_complete(strategy_agent(state))
         assert result["selected_strategy"] == "momentum"
@@ -227,11 +232,14 @@ class TestStrategyAgent:
 # RiskAgent tests
 # ---------------------------------------------------------------------------
 
+
 class TestRiskAgent:
     def test_good_strategy_approved(self) -> None:
-        state = make_state(backtest=make_backtest_results(
-            sharpe=1.5, max_dd=0.10, var_95=0.02, win_rate=0.55
-        ))
+        state = make_state(
+            backtest=make_backtest_results(
+                sharpe=1.5, max_dd=0.10, var_95=0.02, win_rate=0.55
+            )
+        )
         result = asyncio.get_event_loop().run_until_complete(risk_agent(state))
         assert result["risk_approved"] is True
 
@@ -306,6 +314,7 @@ class TestRiskAgent:
 # ExplainerAgent tests
 # ---------------------------------------------------------------------------
 
+
 class TestExplainerAgent:
     def test_parse_signal_buy(self) -> None:
         assert _parse_signal("SIGNAL: BUY\nApple looks strong.") == "BUY"
@@ -324,15 +333,21 @@ class TestExplainerAgent:
         assert _parse_signal("No clear signal here.") == "HOLD"
 
     def test_signal_from_backtest_buy(self) -> None:
-        state = make_state(backtest=make_backtest_results(sharpe=1.5, total_return=0.20))
+        state = make_state(
+            backtest=make_backtest_results(sharpe=1.5, total_return=0.20)
+        )
         assert _signal_from_backtest(state) == "BUY"
 
     def test_signal_from_backtest_sell(self) -> None:
-        state = make_state(backtest=make_backtest_results(sharpe=-0.5, total_return=-0.15))
+        state = make_state(
+            backtest=make_backtest_results(sharpe=-0.5, total_return=-0.15)
+        )
         assert _signal_from_backtest(state) == "SELL"
 
     def test_signal_from_backtest_hold(self) -> None:
-        state = make_state(backtest=make_backtest_results(sharpe=0.3, total_return=0.02))
+        state = make_state(
+            backtest=make_backtest_results(sharpe=0.3, total_return=0.02)
+        )
         assert _signal_from_backtest(state) == "HOLD"
 
     def test_fallback_explanation_contains_ticker(self) -> None:
@@ -341,7 +356,9 @@ class TestExplainerAgent:
         assert "AAPL" in explanation
 
     def test_fallback_explanation_contains_signal(self) -> None:
-        state = make_state(backtest=make_backtest_results(sharpe=1.5, total_return=0.20))
+        state = make_state(
+            backtest=make_backtest_results(sharpe=1.5, total_return=0.20)
+        )
         explanation = _generate_fallback_explanation(state)
         assert "SIGNAL:" in explanation
 
@@ -359,6 +376,7 @@ class TestExplainerAgent:
 # ---------------------------------------------------------------------------
 # API Schema tests
 # ---------------------------------------------------------------------------
+
 
 class TestAnalysisRequest:
     def test_valid_request(self) -> None:

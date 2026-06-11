@@ -41,11 +41,11 @@ from graph.state import TradingState
 logger = get_logger(__name__)
 
 # Strategy selection thresholds
-TREND_STRENGTH_THRESHOLD = 5.0   # % price change to consider trending
-VOLATILITY_THRESHOLD = 0.025     # Daily std > 2.5% = high volatility
-SMA_SLOPE_THRESHOLD = 0.001      # Normalized SMA slope for trend detection
-STRONG_TREND_THRESHOLD = 8.0     # % price change for MACD (stronger signal needed)
-BULLISH_SIGNAL_THRESHOLD = 2     # Min bullish RAG signals to prefer MACD over Momentum
+TREND_STRENGTH_THRESHOLD = 5.0  # % price change to consider trending
+VOLATILITY_THRESHOLD = 0.025  # Daily std > 2.5% = high volatility
+SMA_SLOPE_THRESHOLD = 0.001  # Normalized SMA slope for trend detection
+STRONG_TREND_THRESHOLD = 8.0  # % price change for MACD (stronger signal needed)
+BULLISH_SIGNAL_THRESHOLD = 2  # Min bullish RAG signals to prefer MACD over Momentum
 
 # Retry cycle: on each retry, alternate between the two primary strategies.
 # The optimizer uses all 4; the retry loop only toggles the two main ones
@@ -79,9 +79,7 @@ async def strategy_agent(state: TradingState) -> TradingState:
     rag_context = state.get("rag_context", "")
     retry_count = state.get("retry_count", 0)
 
-    logger.info(
-        "StrategyAgent | analyzing | ticker=%s | retry=%d", ticker, retry_count
-    )
+    logger.info("StrategyAgent | analyzing | ticker=%s | retry=%d", ticker, retry_count)
 
     try:
         # Extract price series from history
@@ -93,31 +91,49 @@ async def strategy_agent(state: TradingState) -> TradingState:
                 "StrategyAgent | insufficient price history | n=%d | defaulting to momentum",
                 len(closes),
             )
-            return _select_momentum(state, "Insufficient price history — defaulting to momentum.")
+            return _select_momentum(
+                state, "Insufficient price history — defaulting to momentum."
+            )
 
         closes_arr = np.array(closes, dtype=float)
 
         # Compute market regime indicators
         trend_strength = abs(market_data.get("price_change_pct", 0.0))
         returns = np.diff(closes_arr) / closes_arr[:-1]
-        volatility = float(np.std(returns[-20:], ddof=1)) if len(returns) >= 20 else 0.02
+        volatility = (
+            float(np.std(returns[-20:], ddof=1)) if len(returns) >= 20 else 0.02
+        )
 
         # SMA slope: normalized slope of 20-day SMA
         sma_20 = np.convolve(closes_arr, np.ones(20) / 20, mode="valid")
         if len(sma_20) >= 2:
-            sma_slope = (sma_20[-1] - sma_20[-5]) / (sma_20[-5] * 5) if sma_20[-5] > 0 else 0.0
+            sma_slope = (
+                (sma_20[-1] - sma_20[-5]) / (sma_20[-5] * 5) if sma_20[-5] > 0 else 0.0
+            )
         else:
             sma_slope = 0.0
 
         # Check if RAG context mentions bearish/bullish signals
         rag_lower = rag_context.lower()
-        bullish_signals = sum(1 for w in ["growth", "record", "beat", "strong", "increase", "rose"] if w in rag_lower)
-        bearish_signals = sum(1 for w in ["decline", "fell", "miss", "weak", "decrease", "dropped"] if w in rag_lower)
+        bullish_signals = sum(
+            1
+            for w in ["growth", "record", "beat", "strong", "increase", "rose"]
+            if w in rag_lower
+        )
+        bearish_signals = sum(
+            1
+            for w in ["decline", "fell", "miss", "weak", "decrease", "dropped"]
+            if w in rag_lower
+        )
 
         logger.debug(
             "StrategyAgent | regime | trend=%.2f%% | vol=%.4f | sma_slope=%.6f | "
             "bullish=%d | bearish=%d",
-            trend_strength, volatility, sma_slope, bullish_signals, bearish_signals,
+            trend_strength,
+            volatility,
+            sma_slope,
+            bullish_signals,
+            bearish_signals,
         )
 
         # Read FinBERT sentiment score (from SentimentAgent, default neutral)
@@ -126,7 +142,8 @@ async def strategy_agent(state: TradingState) -> TradingState:
 
         logger.debug(
             "StrategyAgent | sentiment | score=%.3f | label=%s",
-            sentiment_score, sentiment_label,
+            sentiment_score,
+            sentiment_label,
         )
 
         # On retry, rotate through all 4 strategies in a fixed cycle
@@ -166,7 +183,9 @@ async def strategy_agent(state: TradingState) -> TradingState:
 
         if is_trending and not is_high_volatility:
             # Trending market — choose between MACD and Momentum
-            if (is_strong_trend or is_sentiment_bullish) and bullish_signals >= BULLISH_SIGNAL_THRESHOLD:
+            if (
+                is_strong_trend or is_sentiment_bullish
+            ) and bullish_signals >= BULLISH_SIGNAL_THRESHOLD:
                 # Strong trend OR bullish sentiment + bullish fundamentals → MACD
                 rationale = (
                     f"Strong trend detected: {trend_strength:.1f}% price change, "
@@ -213,7 +232,9 @@ async def strategy_agent(state: TradingState) -> TradingState:
                 return _select_rsi(state, rationale)
 
     except Exception as e:
-        logger.error("StrategyAgent | failed | ticker=%s | %s", ticker, e, exc_info=True)
+        logger.error(
+            "StrategyAgent | failed | ticker=%s | %s", ticker, e, exc_info=True
+        )
         return {
             **state,
             "selected_strategy": "momentum",
@@ -310,7 +331,11 @@ def _select_mean_reversion(
         Updated state with mean reversion strategy.
     """
     z_threshold = 2.5 if volatility > VOLATILITY_THRESHOLD else 1.5
-    logger.info("StrategyAgent | selected=mean_reversion | z=%.1f | %s", z_threshold, rationale[:80])
+    logger.info(
+        "StrategyAgent | selected=mean_reversion | z=%.1f | %s",
+        z_threshold,
+        rationale[:80],
+    )
     return {
         **state,
         "selected_strategy": "mean_reversion",

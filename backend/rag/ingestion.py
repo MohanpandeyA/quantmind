@@ -49,6 +49,7 @@ logger = get_logger(__name__)
 # Ingestion report
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class IngestionReport:
     """Statistics from a single ingestion run.
@@ -101,6 +102,7 @@ class IngestionReport:
 # ---------------------------------------------------------------------------
 # Ingestion pipeline
 # ---------------------------------------------------------------------------
+
 
 class IngestionPipeline:
     """Orchestrates the full document ingestion pipeline.
@@ -239,7 +241,9 @@ class IngestionPipeline:
 
         logger.info(
             "IngestionPipeline | starting | ticker=%s | sources=%d | force=%s",
-            ticker, len(self.loaders), force_refresh,
+            ticker,
+            len(self.loaders),
+            force_refresh,
         )
 
         # Step 1: Load documents from all sources concurrently
@@ -267,9 +271,7 @@ class IngestionPipeline:
         chunks = self._chunk_documents(documents, report)
 
         if not chunks:
-            logger.warning(
-                "IngestionPipeline | no chunks created | ticker=%s", ticker
-            )
+            logger.warning("IngestionPipeline | no chunks created | ticker=%s", ticker)
             report.duration_seconds = time.perf_counter() - start_time
             return report
 
@@ -277,9 +279,7 @@ class IngestionPipeline:
         vectors = await self._embed_chunks(chunks, report)
 
         if vectors is None or len(vectors) == 0:
-            logger.error(
-                "IngestionPipeline | embedding failed | ticker=%s", ticker
-            )
+            logger.error("IngestionPipeline | embedding failed | ticker=%s", ticker)
             report.duration_seconds = time.perf_counter() - start_time
             return report
 
@@ -331,7 +331,8 @@ class IngestionPipeline:
                 if isinstance(result, Exception):
                     logger.error(
                         "IngestionPipeline | ticker failed | ticker=%s | %s",
-                        ticker, result,
+                        ticker,
+                        result,
                     )
                     reports[ticker] = IngestionReport(
                         ticker=ticker,
@@ -382,7 +383,8 @@ class IngestionPipeline:
                 report.errors.append(error_msg)
                 logger.warning(
                     "IngestionPipeline | loader failed | source=%s | %s",
-                    loader.get_source_name(), result,
+                    loader.get_source_name(),
+                    result,
                 )
             elif isinstance(result, list):
                 if result:
@@ -392,7 +394,9 @@ class IngestionPipeline:
         report.docs_loaded = len(all_documents)
         logger.info(
             "IngestionPipeline | loaded | ticker=%s | docs=%d | sources=%s",
-            ticker, len(all_documents), report.sources_used,
+            ticker,
+            len(all_documents),
+            report.sources_used,
         )
         return all_documents
 
@@ -431,7 +435,8 @@ class IngestionPipeline:
         report.docs_skipped = skipped
         logger.info(
             "IngestionPipeline | deduplication | new=%d | skipped=%d",
-            len(new_docs), skipped,
+            len(new_docs),
+            skipped,
         )
         return new_docs
 
@@ -453,7 +458,8 @@ class IngestionPipeline:
         report.chunks_created = len(chunks)
         logger.info(
             "IngestionPipeline | chunked | docs=%d → chunks=%d",
-            len(documents), len(chunks),
+            len(documents),
+            len(chunks),
         )
         return chunks
 
@@ -475,7 +481,8 @@ class IngestionPipeline:
             vectors = await self.embedding_model.embed_chunks(chunks)
             logger.info(
                 "IngestionPipeline | embedded | chunks=%d | shape=%s",
-                len(chunks), vectors.shape,
+                len(chunks),
+                vectors.shape,
             )
             return vectors
         except Exception as e:
@@ -500,9 +507,7 @@ class IngestionPipeline:
         try:
             n_stored = self.vector_store.add_chunks(chunks, vectors)
             report.chunks_stored = n_stored
-            logger.info(
-                "IngestionPipeline | stored | chunks=%d", n_stored
-            )
+            logger.info("IngestionPipeline | stored | chunks=%d", n_stored)
         except Exception as e:
             error_msg = f"Storage failed: {e}"
             report.errors.append(error_msg)

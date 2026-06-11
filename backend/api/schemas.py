@@ -15,10 +15,10 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-
 # ---------------------------------------------------------------------------
 # Request schemas
 # ---------------------------------------------------------------------------
+
 
 class AnalysisRequest(BaseModel):
     """Request body for POST /analyze.
@@ -110,6 +110,7 @@ class AnalysisRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Response schemas
 # ---------------------------------------------------------------------------
+
 
 class MarketDataResponse(BaseModel):
     """Market data in the analysis response."""

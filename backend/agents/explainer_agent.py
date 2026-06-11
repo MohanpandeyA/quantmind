@@ -98,7 +98,9 @@ async def explainer_agent(state: TradingState) -> TradingState:
 
         logger.info(
             "ExplainerAgent | complete | ticker=%s | signal=%s | chars=%d",
-            ticker, signal, len(explanation),
+            ticker,
+            signal,
+            len(explanation),
         )
 
         return {
@@ -249,9 +251,7 @@ async def _call_groq(prompt: str) -> str:
         return response.choices[0].message.content or ""
 
     except ImportError:
-        raise ImportError(
-            "groq package not installed. Run: pip install groq"
-        )
+        raise ImportError("groq package not installed. Run: pip install groq")
 
 
 def _parse_signal(explanation: str) -> str:

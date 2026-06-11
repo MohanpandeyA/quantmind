@@ -31,15 +31,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routes.analysis import router as analysis_router
-from api.routes.portfolio import router as portfolio_router
-from api.routes.compare import router as compare_router
-from api.routes.optimize import router as optimize_router
 from api.routes.alerts import router as alerts_router
+from api.routes.analysis import router as analysis_router
+from api.routes.compare import router as compare_router
 from api.routes.earnings import router as earnings_router
+from api.routes.live_chart import router as live_chart_router
+from api.routes.optimize import router as optimize_router
+from api.routes.portfolio import router as portfolio_router
 from api.routes.ticker import router as ticker_router
 from api.routes.walk_forward import router as walk_forward_router
-from api.routes.live_chart import router as live_chart_router
 from api.schemas import HealthResponse
 from config.logging_config import get_logger, setup_logging, stop_logging
 from config.settings import settings
@@ -86,19 +86,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Pre-load embedding model at startup (Critical Fix 3)
     # Runs in background thread so it doesn't block the startup
     import asyncio
+
     loop = asyncio.get_event_loop()
     try:
         logger.info("Pre-loading sentence-transformers embedding model...")
         from rag.embeddings import EmbeddingModel
+
         model = EmbeddingModel()
         # Load model in thread pool (CPU-bound, ~6-8s)
         await loop.run_in_executor(None, model._load_model)
         logger.info(
             "Embedding model pre-loaded | model=%s | dims=%d",
-            model.model_name, model.dimensions,
+            model.model_name,
+            model.dimensions,
         )
     except Exception as e:
-        logger.warning("Embedding model pre-load failed (will load on first request): %s", e)
+        logger.warning(
+            "Embedding model pre-load failed (will load on first request): %s", e
+        )
 
     # Pre-load FinBERT sentiment model at startup
     # First load downloads ~440MB from HuggingFace and takes ~30-40s.
@@ -106,10 +111,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         logger.info("Pre-loading FinBERT sentiment model...")
         from agents.sentiment_agent import _load_finbert
+
         await loop.run_in_executor(None, _load_finbert)
         logger.info("FinBERT sentiment model pre-loaded | model=ProsusAI/finbert")
     except Exception as e:
-        logger.warning("FinBERT pre-load failed (will load on first sentiment analysis): %s", e)
+        logger.warning(
+            "FinBERT pre-load failed (will load on first sentiment analysis): %s", e
+        )
 
     yield  # Application runs here
 
@@ -149,8 +157,8 @@ Analyzes stocks using a 5-agent LangGraph pipeline:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",   # React dev server
-        "http://localhost:5173",   # Vite dev server
+        "http://localhost:3000",  # React dev server
+        "http://localhost:5173",  # Vite dev server
         "https://quantmind.vercel.app",  # Production frontend
     ],
     allow_credentials=True,
