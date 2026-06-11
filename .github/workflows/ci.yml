@@ -40,7 +40,7 @@ jobs:
       - name: Run unit tests
         run: |
           cd backend
-          python -m pytest tests/unit/ -v --tb=short --cov=. --cov-report=term-missing
+          python -m pytest tests/unit/ -v --tb=short
         env:
           # Minimal env vars needed for tests (no real keys required)
           GROQ_API_KEY: test_key_not_used_in_unit_tests
