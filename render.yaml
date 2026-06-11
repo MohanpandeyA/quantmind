@@ -1,0 +1,87 @@
+# QuantMind — Render.com deployment configuration
+#
+# HOW TO DEPLOY TO RENDER (free tier):
+#
+# 1. Push this repo to GitHub
+# 2. Go to https://render.com → New → Blueprint
+# 3. Connect your GitHub repo → Render reads this render.yaml automatically
+# 4. Set the secret env vars in the Render dashboard (see envVars below)
+# 5. Click "Apply" → Render builds and deploys automatically
+#
+# After deploy:
+#   Backend URL: https://quantmind-backend.onrender.com
+#   Swagger UI:  https://quantmind-backend.onrender.com/docs
+#
+# FREE TIER NOTES:
+#   - Service spins down after 15 min of inactivity
+#   - First request after spin-down takes ~30s (cold start)
+#   - 512MB RAM — enough for sentence-transformers + FinBERT (barely)
+#   - ChromaDB data is ephemeral (lost on redeploy) — acceptable for demo
+#   - Upgrade to Starter ($7/mo) for persistent disk + no spin-down
+
+services:
+  - type: web
+    name: quantmind-backend
+    runtime: python
+    region: oregon   # US West — lowest latency for most users
+    plan: free       # Change to "starter" for production ($7/mo)
+
+    # Root directory within the repo
+    rootDir: backend
+
+    # Build command — runs once during deployment
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+
+    # Start command — runs the FastAPI server
+    # $PORT is injected by Render (usually 10000 on free tier)
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT --workers 1
+
+    # Health check — Render uses this to verify the service is up
+    healthCheckPath: /health
+
+    # Environment variables
+    # sync: false = secret (set in Render dashboard, not committed to git)
+    # sync: true  = non-secret (committed here, visible in git)
+    envVars:
+      # ── Non-secret config (safe to commit) ──
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+        sync: true
+
+      - key: FASTAPI_HOST
+        value: 0.0.0.0
+        sync: true
+
+      - key: DEBUG
+        value: "false"
+        sync: true
+
+      - key: LOG_LEVEL
+        value: INFO
+        sync: true
+
+      - key: ALPACA_BASE_URL
+        value: https://paper-api.alpaca.markets
+        sync: true
+
+      # ChromaDB: use /tmp on free tier (ephemeral but works for demo)
+      # For persistent storage, upgrade to Starter and use a Render Disk
+      - key: CHROMA_PERSIST_DIR
+        value: /tmp/chroma
+        sync: true
+
+      # ── Secrets (set in Render dashboard — NEVER commit real values) ──
+      - key: GROQ_API_KEY
+        sync: false   # Set in Render dashboard
+
+      - key: NEWS_API_KEY
+        sync: false   # Set in Render dashboard
+
+      - key: ALPACA_API_KEY
+        sync: false   # Set in Render dashboard
+
+      - key: ALPACA_SECRET_KEY
+        sync: false   # Set in Render dashboard
+
+      - key: MONGODB_URI
+        sync: false   # Set in Render dashboard (MongoDB Atlas free tier URI)

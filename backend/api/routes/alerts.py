@@ -157,15 +157,20 @@ class ConnectionManager:
         if self._monitor_task is None or self._monitor_task.done():
             self._monitor_task = asyncio.create_task(self._monitor_prices())
 
-        # Send current alerts to new connection
-        await websocket.send_json({
-            "type": "connected",
-            "message": f"Connected to QuantMind alerts. {len(self.alerts)} alerts active.",
-            "alerts": [
-                {"ticker": a.ticker, "condition": a.condition, "threshold": a.threshold}
-                for a in self.alerts
-            ],
-        })
+        # Send current alerts to new connection — guard against immediate disconnect
+        try:
+            await websocket.send_json({
+                "type": "connected",
+                "message": f"Connected to QuantMind alerts. {len(self.alerts)} alerts active.",
+                "alerts": [
+                    {"ticker": a.ticker, "condition": a.condition, "threshold": a.threshold}
+                    for a in self.alerts
+                ],
+            })
+        except Exception:
+            # Client disconnected before welcome message could be sent — clean up silently
+            self.active_connections.discard(websocket)
+            raise
 
     def disconnect(self, websocket: WebSocket) -> None:
         """Remove a disconnected WebSocket.

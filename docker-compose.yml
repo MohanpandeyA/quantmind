@@ -1,0 +1,99 @@
+version: "3.9"
+
+# QuantMind — One-command local dev with Docker
+#
+# Usage:
+#   docker compose up          # Start all services
+#   docker compose up backend  # Start only FastAPI
+#   docker compose down        # Stop all services
+#   docker compose down -v     # Stop + delete volumes (clears ChromaDB)
+#
+# After starting:
+#   FastAPI:    http://localhost:8000
+#   Swagger UI: http://localhost:8000/docs
+#   React:      http://localhost:5173
+
+services:
+
+  # ─────────────────────────────────────────────────────────────
+  # FastAPI Backend (Python AI/ML engine)
+  # ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: quantmind-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Copy from backend/.env — or set directly here for Docker
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      NEWS_API_KEY: ${NEWS_API_KEY}
+      ALPACA_API_KEY: ${ALPACA_API_KEY}
+      ALPACA_SECRET_KEY: ${ALPACA_SECRET_KEY}
+      ALPACA_BASE_URL: ${ALPACA_BASE_URL:-https://paper-api.alpaca.markets}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/quantmind}
+      CHROMA_PERSIST_DIR: /app/data/chroma
+      FASTAPI_HOST: 0.0.0.0
+      FASTAPI_PORT: "8000"
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      # Persist ChromaDB data across container restarts
+      - chroma_data:/app/data/chroma
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s   # FinBERT + sentence-transformers take ~60s to load
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # React Frontend (Vite dev server)
+  # ─────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        # Bake the backend URL into the Vite bundle at build time
+        VITE_API_URL: http://localhost:8000
+    container_name: quantmind-frontend
+    ports:
+      - "5173:80"   # nginx inside container listens on 80, mapped to 5173
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # MongoDB (optional — for analysis history persistence)
+  # ─────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: quantmind-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+# ─────────────────────────────────────────────────────────────
+# Named volumes — persist data across container restarts
+# ─────────────────────────────────────────────────────────────
+volumes:
+  chroma_data:
+    driver: local
+  mongo_data:
+    driver: local

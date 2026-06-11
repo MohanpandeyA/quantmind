@@ -47,8 +47,10 @@ SMA_SLOPE_THRESHOLD = 0.001      # Normalized SMA slope for trend detection
 STRONG_TREND_THRESHOLD = 8.0     # % price change for MACD (stronger signal needed)
 BULLISH_SIGNAL_THRESHOLD = 2     # Min bullish RAG signals to prefer MACD over Momentum
 
-# Retry cycle: on each retry, rotate through all 4 strategies
-_RETRY_CYCLE = ["momentum", "mean_reversion", "rsi", "macd"]
+# Retry cycle: on each retry, alternate between the two primary strategies.
+# The optimizer uses all 4; the retry loop only toggles the two main ones
+# so the risk agent gets a meaningfully different regime each time.
+_RETRY_CYCLE = ["momentum", "mean_reversion"]
 
 
 async def strategy_agent(state: TradingState) -> TradingState:
@@ -128,10 +130,13 @@ async def strategy_agent(state: TradingState) -> TradingState:
         )
 
         # On retry, rotate through all 4 strategies in a fixed cycle
+        # Always advance FROM the current strategy (not a fixed index),
+        # so retrying from any strategy always picks a different one.
         if retry_count > 0:
-            cycle_idx = retry_count % len(_RETRY_CYCLE)
-            next_strategy = _RETRY_CYCLE[cycle_idx]
             current = state.get("selected_strategy", "momentum")
+            current_idx = _RETRY_CYCLE.index(current) if current in _RETRY_CYCLE else 0
+            next_idx = (current_idx + 1) % len(_RETRY_CYCLE)
+            next_strategy = _RETRY_CYCLE[next_idx]
             rationale = (
                 f"Retry {retry_count}: Switching from {current} to {next_strategy} "
                 f"after risk rejection. "
