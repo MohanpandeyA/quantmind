@@ -1,68 +1,61 @@
-/**
- * SignalBadge — displays the BUY/SELL/HOLD trading signal.
- *
- * Color coding:
- *   BUY  → green (positive, go long)
- *   SELL → red   (negative, exit/short)
- *   HOLD → yellow (neutral, wait)
- */
+const SIGNAL_CONFIG = {
+  BUY: {
+    border: "border-l-emerald-500",
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    badge: "bg-emerald-500",
+    icon: "↑",
+    label: "BUY",
+  },
+  SELL: {
+    border: "border-l-red-500",
+    bg: "bg-red-50",
+    text: "text-red-700",
+    badge: "bg-red-500",
+    icon: "↓",
+    label: "SELL",
+  },
+  HOLD: {
+    border: "border-l-amber-500",
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+    badge: "bg-amber-500",
+    icon: "→",
+    label: "HOLD",
+  },
+};
 
-/**
- * @param {Object} props
- * @param {string} props.signal - "BUY", "SELL", or "HOLD"
- * @param {string} [props.ticker] - Ticker symbol for display
- * @param {number} [props.processingTimeMs] - Analysis time in ms
- */
 const SignalBadge = ({ signal, ticker, processingTimeMs }) => {
-  const config = {
-    BUY: {
-      bg: "bg-green-900/40",
-      border: "border-green-500",
-      text: "text-green-400",
-      icon: "📈",
-      label: "BUY",
-      description: "Positive momentum — consider entering a long position",
-    },
-    SELL: {
-      bg: "bg-red-900/40",
-      border: "border-red-500",
-      text: "text-red-400",
-      icon: "📉",
-      label: "SELL",
-      description: "Negative momentum — consider exiting or avoiding",
-    },
-    HOLD: {
-      bg: "bg-yellow-900/40",
-      border: "border-yellow-500",
-      text: "text-yellow-400",
-      icon: "⏸️",
-      label: "HOLD",
-      description: "Neutral — wait for a clearer signal",
-    },
-  };
-
-  const c = config[signal] || config.HOLD;
+  const cfg = SIGNAL_CONFIG[signal] || SIGNAL_CONFIG.HOLD;
 
   return (
-    <div className={`card border-2 ${c.border} ${c.bg}`}>
+    <div className={`card border-l-4 ${cfg.border} ${cfg.bg} !p-5`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <span className="text-5xl">{c.icon}</span>
+          <div className={`w-12 h-12 ${cfg.badge} rounded-xl flex items-center justify-center shadow-sm`}>
+            <span className="text-white text-xl font-bold">{cfg.icon}</span>
+          </div>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className={`text-3xl font-black tracking-tight ${cfg.text}`}>
+                {cfg.label}
+              </span>
               {ticker && (
-                <span className="text-gray-400 text-lg font-mono">{ticker}</span>
+                <span className="text-slate-400 text-lg font-mono font-semibold">
+                  {ticker}
+                </span>
               )}
-              <span className={`text-4xl font-black ${c.text}`}>{c.label}</span>
             </div>
-            <p className="text-gray-400 text-sm mt-1">{c.description}</p>
+            <p className="text-slate-500 text-sm mt-0.5">
+              AI-powered signal based on 7-agent analysis
+            </p>
           </div>
         </div>
 
         {processingTimeMs && (
-          <div className="text-right">
-            <div className="text-xs text-gray-500">Analysis time</div>
-            <div className="text-sm text-gray-400 font-mono">
+          <div className="text-right hidden sm:block">
+            <div className="text-xs text-slate-400">Processed in</div>
+            <div className="text-sm font-semibold text-slate-600 tabular-nums">
               {(processingTimeMs / 1000).toFixed(1)}s
             </div>
           </div>

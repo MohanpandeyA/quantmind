@@ -2,41 +2,182 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom base styles */
+/* ─────────────────────────────────────────────────────────────
+   QuantMind Design System — Clean Light Fintech Theme
+   Inspired by: Stripe, Linear, Vercel dashboards
+   ───────────────────────────────────────────────────────────── */
+
 @layer base {
   body {
-    @apply bg-gray-950 text-gray-100 font-sans antialiased;
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   h1, h2, h3, h4 {
-    @apply font-semibold tracking-tight;
+    @apply font-semibold tracking-tight text-slate-900;
+  }
+
+  * {
+    @apply border-slate-200;
   }
 }
 
-/* Custom component classes */
 @layer components {
+
+  /* ── Cards ── */
   .card {
-    @apply bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-lg;
+    @apply bg-white border border-slate-100 rounded-2xl p-6 shadow-sm;
   }
 
+  .card-sm {
+    @apply bg-white border border-slate-100 rounded-xl p-4 shadow-sm;
+  }
+
+  /* ── Buttons ── */
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-500 text-white font-semibold
-           px-6 py-3 rounded-lg transition-colors duration-200
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
+           text-white font-medium text-sm
+           px-5 py-2.5 rounded-xl transition-all duration-150
+           disabled:opacity-40 disabled:cursor-not-allowed
+           shadow-sm hover:shadow-md;
   }
 
+  .btn-secondary {
+    @apply bg-white hover:bg-slate-50 active:bg-slate-100
+           text-slate-700 font-medium text-sm
+           px-5 py-2.5 rounded-xl transition-all duration-150
+           border border-slate-200 hover:border-slate-300
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply text-slate-500 hover:text-slate-700 hover:bg-slate-100
+           font-medium text-sm px-3 py-2 rounded-lg transition-all duration-150;
+  }
+
+  /* ── Inputs ── */
   .input-field {
-    @apply bg-gray-800 border border-gray-700 text-gray-100
-           rounded-lg px-4 py-3 w-full focus:outline-none
-           focus:ring-2 focus:ring-blue-500 focus:border-transparent
-           placeholder-gray-500;
+    @apply bg-white border border-slate-200 text-slate-900
+           rounded-xl px-4 py-2.5 w-full
+           focus:outline-none focus:ring-2 focus:ring-indigo-500/20
+           focus:border-indigo-400 transition-all duration-150
+           placeholder-slate-400 text-sm;
+  }
+
+  /* ── Metric cards ── */
+  .metric-card {
+    @apply bg-white border border-slate-100 rounded-xl p-4 shadow-sm;
   }
 
   .metric-value {
-    @apply text-2xl font-bold tabular-nums;
+    @apply text-2xl font-bold tabular-nums text-slate-900;
   }
 
   .metric-label {
-    @apply text-xs text-gray-400 uppercase tracking-wider mt-1;
+    @apply text-xs text-slate-400 uppercase tracking-wider mt-1 font-medium;
   }
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-green {
+    @apply bg-emerald-50 text-emerald-700 border border-emerald-100;
+  }
+
+  .badge-red {
+    @apply bg-red-50 text-red-700 border border-red-100;
+  }
+
+  .badge-amber {
+    @apply bg-amber-50 text-amber-700 border border-amber-100;
+  }
+
+  .badge-indigo {
+    @apply bg-indigo-50 text-indigo-700 border border-indigo-100;
+  }
+
+  .badge-slate {
+    @apply bg-slate-100 text-slate-600 border border-slate-200;
+  }
+
+  /* ── Section headers ── */
+  .section-title {
+    @apply text-xs font-semibold text-slate-400 uppercase tracking-widest;
+  }
+
+  /* ── Dividers ── */
+  .divider {
+    @apply border-t border-slate-100 my-4;
+  }
+
+  /* ── Loading skeleton ── */
+  .skeleton {
+    @apply bg-slate-100 animate-pulse rounded-lg;
+  }
+
+  /* ── Chip / pill selectors ── */
+  .chip {
+    @apply px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer
+           transition-all duration-150 border;
+  }
+
+  .chip-active {
+    @apply bg-indigo-600 text-white border-indigo-600 shadow-sm;
+  }
+
+  .chip-inactive {
+    @apply bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50;
+  }
+
+  /* ── Table ── */
+  .table-row {
+    @apply flex items-center justify-between py-3 border-b border-slate-50 last:border-0;
+  }
+
+  /* ── Status dot ── */
+  .status-dot-green {
+    @apply w-2 h-2 rounded-full bg-emerald-500;
+  }
+
+  .status-dot-red {
+    @apply w-2 h-2 rounded-full bg-red-500;
+  }
+
+  .status-dot-amber {
+    @apply w-2 h-2 rounded-full bg-amber-500;
+  }
+}
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ── Recharts tooltip override ── */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07) !important;
+  padding: 10px 14px !important;
+}
+
+/* ── Smooth transitions ── */
+* {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 100ms;
 }

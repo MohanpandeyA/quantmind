@@ -1,319 +1,66 @@
-/**
- * RAGExplainer — displays the AI-generated explanation with source citations
- * and FinBERT sentiment analysis.
- *
- * Features:
- * - Formatted explanation text with signal highlighted
- * - FinBERT sentiment score + top positive/negative signals (NEW)
- * - Numbered source citations (from Phase 2 RAG pipeline)
- * - Strategy rationale from StrategyAgent
- * - Expandable/collapsible sections
- */
+const SENTIMENT_CONFIG = {
+  BULLISH: { color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", dot: "bg-emerald-500" },
+  BEARISH: { color: "text-red-600", bg: "bg-red-50", border: "border-red-100", dot: "bg-red-500" },
+  NEUTRAL: { color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100", dot: "bg-amber-500" },
+};
 
-import { useState } from "react";
-
-/**
- * @param {Object} props
- * @param {string} props.explanation - LLM-generated explanation text
- * @param {string[]} props.citations - Source citation strings
- * @param {string} [props.strategyRationale] - Why this strategy was selected
- * @param {string} [props.selectedStrategy] - Strategy name
- * @param {number} [props.sentimentScore] - FinBERT score -1.0 to +1.0
- * @param {string} [props.sentimentLabel] - "BULLISH" / "BEARISH" / "NEUTRAL"
- * @param {number} [props.sentimentConfidence] - 0.0 to 1.0
- * @param {Object} [props.sentimentDetails] - top positive/negative sentences
- */
 const RAGExplainer = ({
-  explanation,
-  citations,
-  strategyRationale,
-  selectedStrategy,
-  sentimentScore,
-  sentimentLabel,
-  sentimentConfidence,
-  sentimentDetails,
+  explanation, citations, strategyRationale, selectedStrategy,
+  sentimentScore, sentimentLabel, sentimentConfidence, sentimentDetails,
 }) => {
-  const [showCitations, setShowCitations] = useState(true);
-  const [showStrategy, setShowStrategy] = useState(false);
-  const [showSentiment, setShowSentiment] = useState(true);
+  if (!explanation && !sentimentLabel) return null;
 
-  if (!explanation) {
-    return (
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-300 mb-4">
-          🤖 AI Analysis
-        </h3>
-        <div className="text-gray-500 text-center py-8">
-          No explanation available
-        </div>
-      </div>
-    );
-  }
+  const sentCfg = SENTIMENT_CONFIG[sentimentLabel] || SENTIMENT_CONFIG.NEUTRAL;
 
-  // Parse signal line from explanation
-  const lines = explanation.split("\n").filter((l) => l.trim());
-  const signalLine = lines.find((l) => l.startsWith("SIGNAL:"));
-  const confidenceLine = lines.find((l) => l.startsWith("CONFIDENCE:"));
-  const bodyLines = lines.filter(
-    (l) => !l.startsWith("SIGNAL:") && !l.startsWith("CONFIDENCE:") && !l.startsWith("SOURCES:")
-  );
-
-  const signalColors = {
-    BUY: "text-green-400",
-    SELL: "text-red-400",
-    HOLD: "text-yellow-400",
-  };
-
-  const getSignalColor = (line) => {
-    if (line?.includes("BUY")) return signalColors.BUY;
-    if (line?.includes("SELL")) return signalColors.SELL;
-    return signalColors.HOLD;
-  };
-
-  // Sentiment display helpers
-  const hasSentiment = sentimentLabel != null && sentimentScore != null;
-  const sentimentColor = {
-    BULLISH: "text-green-400",
-    BEARISH: "text-red-400",
-    NEUTRAL: "text-yellow-400",
-  }[sentimentLabel] || "text-gray-400";
-
-  const sentimentBg = {
-    BULLISH: "border-green-800 bg-green-900/10",
-    BEARISH: "border-red-800 bg-red-900/10",
-    NEUTRAL: "border-yellow-800 bg-yellow-900/10",
-  }[sentimentLabel] || "border-gray-800 bg-gray-800/20";
-
-  const sentimentEmoji = {
-    BULLISH: "🟢",
-    BEARISH: "🔴",
-    NEUTRAL: "🟡",
-  }[sentimentLabel] || "⚪";
-
-  const topPositive = sentimentDetails?.top_positive || [];
-  const topNegative = sentimentDetails?.top_negative || [];
-  const totalSentences = sentimentDetails?.total_sentences || 0;
+  const lines = explanation
+    ? explanation.split("\n").filter((l) => l.trim())
+    : [];
 
   return (
-    <div className="card space-y-4">
-      <h3 className="text-lg font-semibold text-gray-300 flex items-center gap-2">
-        <span>🤖</span>
-        AI Analysis
-        {selectedStrategy && (
-          <span className="text-xs text-blue-400 bg-blue-900/30 px-2 py-0.5 rounded-full font-normal">
-            {selectedStrategy}
-          </span>
-        )}
-      </h3>
+    <div className="space-y-4">
 
-      {/* Signal + Confidence header */}
-      {(signalLine || confidenceLine) && (
-        <div className="flex items-center gap-4 bg-gray-800/50 rounded-lg px-4 py-3">
-          {signalLine && (
-            <span className={`font-bold text-lg ${getSignalColor(signalLine)}`}>
-              {signalLine}
-            </span>
-          )}
-          {confidenceLine && (
-            <span className="text-gray-400 text-sm">{confidenceLine}</span>
-          )}
-        </div>
-      )}
-
-      {/* FinBERT Sentiment Section */}
-      {hasSentiment && (
-        <div className={`border rounded-lg overflow-hidden ${sentimentBg}`}>
-          <button
-            onClick={() => setShowSentiment(!showSentiment)}
-            className="w-full flex items-center justify-between px-4 py-3
-                       text-sm hover:bg-gray-800/30 transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <span>🧠</span>
-              <span className="text-gray-300 font-medium">FinBERT Sentiment</span>
-              <span className={`font-bold ${sentimentColor}`}>
-                {sentimentEmoji} {sentimentLabel}
-              </span>
-              <span className="text-gray-500 font-mono text-xs">
-                ({sentimentScore >= 0 ? "+" : ""}{sentimentScore?.toFixed(3)})
-              </span>
-              {sentimentConfidence > 0 && (
-                <span className="text-gray-600 text-xs">
-                  {(sentimentConfidence * 100).toFixed(0)}% conf
-                </span>
-              )}
-            </span>
-            <span className="text-gray-500">{showSentiment ? "▼" : "▶"}</span>
-          </button>
-
-          {showSentiment && (
-            <div className="px-4 py-3 border-t border-gray-800/50 space-y-3">
-              {/* Score bar */}
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-red-400 w-12 text-right">Bearish</span>
-                <div className="flex-1 bg-gray-800 rounded-full h-2 relative">
-                  {/* Center line */}
-                  <div className="absolute top-0 left-1/2 w-px h-full bg-gray-600" />
-                  {/* Score indicator */}
-                  <div
-                    className={`absolute top-0 h-full rounded-full transition-all ${
-                      sentimentScore >= 0 ? "bg-green-500" : "bg-red-500"
-                    }`}
-                    style={{
-                      left: sentimentScore >= 0 ? "50%" : `${(sentimentScore + 1) / 2 * 100}%`,
-                      width: `${Math.abs(sentimentScore) / 2 * 100}%`,
-                    }}
-                  />
-                </div>
-                <span className="text-xs text-green-400 w-12">Bullish</span>
-              </div>
-
-              {/* Top signals */}
-              <div className="grid grid-cols-2 gap-3">
-                {topPositive.length > 0 && (
-                  <div>
-                    <div className="text-xs text-green-400 font-medium mb-1">
-                      🟢 Positive signals
-                    </div>
-                    {topPositive.slice(0, 2).map((item, i) => (
-                      <div key={i} className="text-xs text-gray-400 mb-1 flex gap-1">
-                        <span className="text-green-500 font-mono shrink-0">
-                          {item.score >= 0 ? "+" : ""}{item.score?.toFixed(2)}
-                        </span>
-                        <span className="line-clamp-2">{item.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {topNegative.length > 0 && (
-                  <div>
-                    <div className="text-xs text-red-400 font-medium mb-1">
-                      🔴 Negative signals
-                    </div>
-                    {topNegative.slice(0, 2).map((item, i) => (
-                      <div key={i} className="text-xs text-gray-400 mb-1 flex gap-1">
-                        <span className="text-red-500 font-mono shrink-0">
-                          {item.score >= 0 ? "+" : ""}{item.score?.toFixed(2)}
-                        </span>
-                        <span className="line-clamp-2">{item.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {totalSentences > 0 && (
-                <div className="text-xs text-gray-600">
-                  Analyzed {totalSentences} sentences from SEC filings, news
-                  {sentimentDetails?.reddit_sentences > 0
-                    ? ` + ${sentimentDetails.reddit_sentences} social posts`
-                    : ""}
-                  {" "}using ProsusAI/finbert
-                </div>
-              )}
+      {/* Sentiment card */}
+      {sentimentLabel && (
+        <div className={`card border ${sentCfg.border} ${sentCfg.bg}`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="section-title">FinBERT Sentiment</p>
+            <div className={`badge ${sentCfg.bg} ${sentCfg.color} border ${sentCfg.border}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${sentCfg.dot}`}></span>
+              {sentimentLabel}
             </div>
-          )}
-        </div>
-      )}
+          </div>
 
-      {/* Main explanation body — smart formatting */}
-      <div className="space-y-1.5">
-        {bodyLines.map((line, i) => {
-          // Source citations: [1] text, [2] text
-          const citationMatch = line.match(/^\[(\d+)\]\s+(.+)/);
-          if (citationMatch) {
-            return (
-              <div key={i} className="flex gap-2 text-sm mt-2">
-                <span className="text-blue-400 font-mono shrink-0">[{citationMatch[1]}]</span>
-                <span className="text-gray-400">{citationMatch[2]}</span>
+          <div className="flex items-center gap-4">
+            <div>
+              <div className={`text-2xl font-bold tabular-nums ${sentCfg.color}`}>
+                {sentimentScore != null ? `${sentimentScore >= 0 ? "+" : ""}${sentimentScore.toFixed(3)}` : "--"}
               </div>
-            );
-          }
-
-          // Bullet points: -, •, *, or numbered "1."
-          const bulletMatch = line.match(/^[-•*]\s+(.+)/) || line.match(/^\d+\.\s+(.+)/);
-          if (bulletMatch) {
-            return (
-              <div key={i} className="flex gap-2 text-gray-300 leading-relaxed">
-                <span className="text-blue-400 shrink-0 mt-0.5 select-none">•</span>
-                <span>{bulletMatch[1]}</span>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Confidence: {sentimentConfidence != null ? `${(sentimentConfidence * 100).toFixed(0)}%` : "--"}
               </div>
-            );
-          }
-
-          // Key-value pairs: "Key Risk: something" or "Strategy: MACD"
-          const kvMatch = line.match(/^([A-Z][^:]{2,35}):\s+(.+)/);
-          if (kvMatch) {
-            return (
-              <div key={i} className="flex gap-2 text-sm">
-                <span className="text-gray-500 shrink-0 font-medium min-w-fit">{kvMatch[1]}:</span>
-                <span className="text-gray-300">{kvMatch[2]}</span>
-              </div>
-            );
-          }
-
-          // Short lines that look like section headers
-          if (line.length < 55 && (line.endsWith(":") || line === line.toUpperCase())) {
-            return (
-              <p key={i} className="text-gray-400 font-semibold text-xs uppercase tracking-wider pt-2 pb-0.5">
-                {line.replace(/:$/, "")}
-              </p>
-            );
-          }
-
-          // Default: regular paragraph
-          return (
-            <p key={i} className="text-gray-300 leading-relaxed">
-              {line}
-            </p>
-          );
-        })}
-      </div>
-
-      {/* Strategy rationale (collapsible) */}
-      {strategyRationale && (
-        <div className="border border-gray-800 rounded-lg overflow-hidden">
-          <button
-            onClick={() => setShowStrategy(!showStrategy)}
-            className="w-full flex items-center justify-between px-4 py-3
-                       text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/50
-                       transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <span>⚙️</span>
-              Strategy Selection Rationale
-            </span>
-            <span>{showStrategy ? "▼" : "▶"}</span>
-          </button>
-          {showStrategy && (
-            <div className="px-4 py-3 bg-gray-800/30 text-sm text-gray-400 border-t border-gray-800">
-              {strategyRationale}
             </div>
-          )}
-        </div>
-      )}
 
-      {/* Source citations (collapsible) */}
-      {citations && citations.length > 0 && (
-        <div className="border border-gray-800 rounded-lg overflow-hidden">
-          <button
-            onClick={() => setShowCitations(!showCitations)}
-            className="w-full flex items-center justify-between px-4 py-3
-                       text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/50
-                       transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <span>📚</span>
-              Sources ({citations.length})
-            </span>
-            <span>{showCitations ? "▼" : "▶"}</span>
-          </button>
-          {showCitations && (
-            <div className="px-4 py-3 bg-gray-800/30 border-t border-gray-800 space-y-2">
-              {citations.map((citation, i) => (
-                <div key={i} className="flex gap-2 text-sm">
-                  <span className="text-blue-400 font-mono shrink-0">[{i + 1}]</span>
-                  <span className="text-gray-400 break-all">{citation}</span>
+            {/* Score bar */}
+            <div className="flex-1">
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${sentCfg.dot}`}
+                  style={{ width: `${Math.min(100, Math.abs((sentimentScore || 0)) * 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                <span>Bearish</span>
+                <span>Neutral</span>
+                <span>Bullish</span>
+              </div>
+            </div>
+          </div>
+
+          {sentimentDetails?.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              {sentimentDetails.slice(0, 2).map((d, i) => (
+                <div key={i} className="text-xs text-slate-500 bg-white/60 rounded-lg px-3 py-2 border border-white">
+                  "{d.text?.slice(0, 120)}{d.text?.length > 120 ? "..." : ""}"
                 </div>
               ))}
             </div>
@@ -321,21 +68,59 @@ const RAGExplainer = ({
         </div>
       )}
 
-      {/* No Groq key notice */}
-      {explanation.includes("GROQ_API_KEY") && (
-        <div className="bg-yellow-900/20 border border-yellow-800 rounded-lg px-4 py-3 text-sm text-yellow-400">
-          💡 Add <code className="bg-yellow-900/40 px-1 rounded">GROQ_API_KEY</code> to{" "}
-          <code className="bg-yellow-900/40 px-1 rounded">backend/.env</code> for
-          AI-powered explanations (free at{" "}
-          <a
-            href="https://console.groq.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-yellow-300"
-          >
-            console.groq.com
-          </a>
-          )
+      {/* Strategy rationale */}
+      {strategyRationale && (
+        <div className="card">
+          <p className="section-title mb-2">Strategy Selection</p>
+          <div className="flex items-start gap-2">
+            {selectedStrategy && (
+              <span className="badge badge-indigo capitalize flex-shrink-0">
+                {selectedStrategy.replace(/_/g, " ")}
+              </span>
+            )}
+            <p className="text-sm text-slate-600 leading-relaxed">{strategyRationale}</p>
+          </div>
+        </div>
+      )}
+
+      {/* AI explanation */}
+      {explanation && (
+        <div className="card">
+          <p className="section-title mb-3">AI Analysis</p>
+          <div className="space-y-2">
+            {lines.map((line, i) => {
+              if (line.startsWith("SIGNAL:") || line.startsWith("CONFIDENCE:")) {
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-400 uppercase w-24 flex-shrink-0">
+                      {line.split(":")[0]}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {line.split(":").slice(1).join(":").trim()}
+                    </span>
+                  </div>
+                );
+              }
+              return (
+                <p key={i} className="text-sm text-slate-600 leading-relaxed">
+                  {line}
+                </p>
+              );
+            })}
+          </div>
+
+          {citations?.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-50">
+              <p className="text-xs text-slate-400 mb-2">Sources</p>
+              <div className="flex flex-wrap gap-1.5">
+                {citations.map((c, i) => (
+                  <span key={i} className="badge badge-slate text-xs">
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

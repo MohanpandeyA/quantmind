@@ -107,12 +107,12 @@ const TickerAutocomplete = ({
 
   // Exchange badge color
   const exchangeColor = (exchange) => {
-    if (!exchange) return "text-gray-500";
+    if (!exchange) return "text-slate-400";
     const e = exchange.toUpperCase();
     if (e.includes("NS") || e.includes("NSI") || e.includes("BSE")) return "text-orange-400";
     if (e.includes("NAS")) return "text-blue-400";
     if (e.includes("NYS")) return "text-green-400";
-    return "text-gray-400";
+    return "text-slate-400";
   };
 
   return (
@@ -133,7 +133,7 @@ const TickerAutocomplete = ({
         {/* Spinner or clear button */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2">
           {searchLoading ? (
-            <svg className="animate-spin h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="none">
+            <svg className="animate-spin h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
@@ -141,7 +141,7 @@ const TickerAutocomplete = ({
             <button
               type="button"
               onClick={handleClear}
-              className="text-gray-500 hover:text-gray-300 text-lg leading-none"
+              className="text-slate-400 hover:text-slate-600 text-lg leading-none"
             >
               ×
             </button>
@@ -158,19 +158,19 @@ const TickerAutocomplete = ({
 
       {/* Autocomplete dropdown */}
       {showDropdown && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden">
+        <div className="absolute z-50 w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg shadow-xl overflow-hidden">
           {suggestions.map((result) => (
             <button
               key={result.symbol}
               type="button"
               onClick={() => handleSelect(result)}
-              className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-700 transition-colors text-left group"
+              className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-100 transition-colors text-left group"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-sm font-mono font-bold text-white bg-gray-700 group-hover:bg-gray-600 px-2 py-0.5 rounded shrink-0">
+                <span className="text-sm font-mono font-bold text-white bg-slate-100 group-hover:bg-gray-600 px-2 py-0.5 rounded shrink-0">
                   {result.symbol}
                 </span>
-                <span className="text-sm text-gray-300 truncate">{result.name}</span>
+                <span className="text-sm text-slate-600 truncate">{result.name}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-2">
                 <span className={`text-xs font-medium ${exchangeColor(result.exchange)}`}>
@@ -180,7 +180,7 @@ const TickerAutocomplete = ({
               </div>
             </button>
           ))}
-          <div className="px-3 py-1.5 border-t border-gray-700 text-xs text-gray-600">
+          <div className="px-3 py-1.5 border-t border-slate-200 text-xs text-gray-600">
             Powered by Yahoo Finance
           </div>
         </div>
@@ -190,9 +190,9 @@ const TickerAutocomplete = ({
       {showHint && (
         <p className="text-xs text-gray-600 mt-1">
           Indian stocks: add{" "}
-          <span className="text-gray-500">.NS</span> (NSE) or{" "}
-          <span className="text-gray-500">.BO</span> (BSE) — e.g.{" "}
-          <span className="text-gray-500">RELIANCE.NS</span>
+          <span className="text-slate-400">.NS</span> (NSE) or{" "}
+          <span className="text-slate-400">.BO</span> (BSE) — e.g.{" "}
+          <span className="text-slate-400">RELIANCE.NS</span>
         </p>
       )}
     </div>

@@ -1,17 +1,3 @@
-/**
- * QuantMind Dashboard — main React application with 8-tab navigation.
- *
- * Tabs:
- *   1. Analyze    — single stock AI analysis (7-agent LangGraph pipeline)
- *   2. Portfolio  — real-time P&L tracker
- *   3. Compare    — rank multiple tickers (asyncio.gather parallel)
- *   4. Optimize   — grid-search strategy params
- *   5. Alerts     — WebSocket price alerts (ConnectionManager)
- *   6. Earnings   — upcoming earnings calendar
- *   7. Validate   — walk-forward validation (robustness ratio)
- *   8. Live       — real-time candlestick chart (WebSocket streaming)
- */
-
 import { useState } from "react";
 import useAnalysis from "./hooks/useAnalysis";
 import TickerSearch from "./components/TickerSearch";
@@ -28,86 +14,116 @@ import WalkForwardAnalysis from "./components/WalkForwardAnalysis";
 import LivePriceChart from "./components/LivePriceChart";
 
 const TABS = [
-  { id: "analyze",      label: "🔍 Analyze",   desc: "Single stock AI analysis" },
-  { id: "portfolio",    label: "💼 Portfolio",  desc: "Real-time P&L tracker" },
-  { id: "compare",      label: "📊 Compare",   desc: "Rank multiple tickers" },
-  { id: "optimize",     label: "⚙️ Optimize",  desc: "Find best parameters" },
-  { id: "alerts",       label: "🔔 Alerts",    desc: "WebSocket price alerts" },
-  { id: "earnings",     label: "📅 Earnings",  desc: "Upcoming earnings calendar" },
-  { id: "validate",     label: "🔬 Validate",  desc: "Walk-forward validation" },
-  { id: "live",         label: "📈 Live",       desc: "Real-time candlestick chart" },
+  { id: "analyze",   label: "Analyze",   icon: "Search" },
+  { id: "portfolio", label: "Portfolio", icon: "Briefcase" },
+  { id: "compare",   label: "Compare",   icon: "BarChart2" },
+  { id: "optimize",  label: "Optimize",  icon: "Settings" },
+  { id: "alerts",    label: "Alerts",    icon: "Bell" },
+  { id: "earnings",  label: "Earnings",  icon: "Calendar" },
+  { id: "validate",  label: "Validate",  icon: "FlaskConical" },
+  { id: "live",      label: "Live",      icon: "TrendingUp" },
 ];
+
+const TAB_EMOJIS = {
+  analyze: "🔍", portfolio: "💼", compare: "📊", optimize: "⚙️",
+  alerts: "🔔", earnings: "📅", validate: "🔬", live: "📈",
+};
+
+const HOW_IT_WORKS = [
+  { icon: "🔍", step: "Research",  desc: "Fetches real-time market data" },
+  { icon: "📚", step: "RAG",       desc: "Retrieves SEC filings and news" },
+  { icon: "🧠", step: "Sentiment", desc: "FinBERT scores news sentiment" },
+  { icon: "📊", step: "Strategy",  desc: "Selects optimal strategy" },
+  { icon: "⚡", step: "Backtest",  desc: "Runs historical simulation" },
+  { icon: "⚠️", step: "Risk",      desc: "Evaluates Sharpe, VaR, MDD" },
+  { icon: "🤖", step: "Explain",   desc: "AI generates cited answer" },
+];
+
+const AGENT_STEPS = ["Research", "RAG", "Sentiment", "Strategy", "Backtest", "Risk", "Explain"];
 
 const App = () => {
   const [activeTab, setActiveTab] = useState("analyze");
   const { result, loading, error, analyze, reset } = useAnalysis();
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-slate-50">
+
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">⚡</span>
-            <div>
-              <h1 className="text-xl font-black text-white tracking-tight">QuantMind</h1>
-              <p className="text-xs text-gray-500">AI-Powered Trading Strategy Advisor</p>
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6">
+
+          {/* Top bar */}
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                <span className="text-white text-sm font-bold">Q</span>
+              </div>
+              <div>
+                <span className="text-slate-900 font-bold text-base tracking-tight">QuantMind</span>
+                <span className="hidden sm:inline text-slate-400 text-xs ml-2">AI Trading Advisor</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                LangGraph + RAG + DSA
+              </div>
+              {result && activeTab === "analyze" && (
+                <button onClick={reset} className="btn-ghost text-xs">
+                  Clear
+                </button>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              LangGraph + RAG + DSA
-            </span>
-            {result && activeTab === "analyze" && (
-              <button onClick={reset} className="text-gray-400 hover:text-gray-300 ml-2">✕ Clear</button>
-            )}
-          </div>
-        </div>
 
-        {/* Tab navigation */}
-        <div className="max-w-7xl mx-auto px-4 flex gap-1 pb-0 overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "bg-gray-950 text-white border-t border-l border-r border-gray-800"
-                  : "text-gray-500 hover:text-gray-300"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {/* Tab navigation */}
+          <div className="flex gap-0.5 overflow-x-auto -mb-px">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={[
+                  "flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all duration-150",
+                  activeTab === tab.id
+                    ? "border-indigo-600 text-indigo-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200",
+                ].join(" ")}
+              >
+                <span className="text-base leading-none">{TAB_EMOJIS[tab.id]}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-6 py-6">
 
-        {/* ===== TAB 1: ANALYZE ===== */}
+        {/* ANALYZE TAB */}
         {activeTab === "analyze" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+            {/* Left column */}
+            <div className="lg:col-span-1 space-y-4">
               <TickerSearch onAnalyze={analyze} loading={loading} />
+
               {!result && !loading && (
                 <div className="card">
-                  <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">How It Works</h3>
+                  <p className="section-title mb-4">How It Works</p>
                   <div className="space-y-3">
-                    {[
-                      { icon: "🔍", step: "1. Research", desc: "Fetches real-time market data" },
-                      { icon: "📚", step: "2. RAG", desc: "Retrieves SEC filings & news" },
-                      { icon: "📊", step: "3. Strategy", desc: "Selects optimal strategy" },
-                      { icon: "⚡", step: "4. Backtest", desc: "Runs historical simulation" },
-                      { icon: "⚠️", step: "5. Risk", desc: "Evaluates Sharpe, VaR, MDD" },
-                      { icon: "🤖", step: "6. Explain", desc: "AI generates cited answer" },
-                    ].map(({ icon, step, desc }) => (
+                    {HOW_IT_WORKS.map(({ icon, step, desc }, i) => (
                       <div key={step} className="flex items-start gap-3">
-                        <span className="text-lg">{icon}</span>
+                        <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0 text-sm">
+                          {icon}
+                        </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-300">{step}</div>
-                          <div className="text-xs text-gray-500">{desc}</div>
+                          <div className="text-sm font-medium text-slate-700">
+                            <span className="text-slate-400 mr-1">{i + 1}.</span>
+                            {step}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5">{desc}</div>
                         </div>
                       </div>
                     ))}
@@ -116,36 +132,69 @@ const App = () => {
               )}
             </div>
 
-            <div className="lg:col-span-2 space-y-6">
+            {/* Right column */}
+            <div className="lg:col-span-2 space-y-4">
+
+              {/* Error state */}
               {error && (
-                <div className="card border border-red-800 bg-red-900/20">
+                <div className="card border-red-100 bg-red-50 animate-fade-in">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">❌</span>
+                    <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-red-600 text-sm font-bold">!</span>
+                    </div>
                     <div>
-                      <h3 className="text-red-400 font-semibold">Analysis Failed</h3>
-                      <p className="text-red-300/80 text-sm mt-1">{error}</p>
+                      <h3 className="text-red-700 font-semibold text-sm">Analysis Failed</h3>
+                      <p className="text-red-600/80 text-sm mt-1">{error}</p>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* Loading state */}
               {loading && (
-                <div className="card border border-blue-800/50">
+                <div className="card animate-fade-in">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full border-4 border-blue-900 border-t-blue-400 animate-spin"></div>
+                    <div className="w-10 h-10 rounded-full border-2 border-slate-100 border-t-indigo-600 animate-spin flex-shrink-0"></div>
                     <div>
-                      <h3 className="text-blue-400 font-semibold">Running Analysis...</h3>
-                      <p className="text-gray-400 text-sm">LangGraph agents working. ~10-15 seconds.</p>
+                      <h3 className="text-slate-800 font-semibold text-sm">Running Analysis</h3>
+                      <p className="text-slate-400 text-xs mt-0.5">7 AI agents working in sequence</p>
                     </div>
+                  </div>
+                  <div className="mt-4 flex gap-1.5">
+                    {AGENT_STEPS.map((s, i) => (
+                      <div key={s} className="flex-1">
+                        <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full bg-indigo-500 rounded-full animate-pulse"
+                            style={{ animationDelay: `${i * 0.15}s` }}
+                          />
+                        </div>
+                        <p className="text-center text-slate-400 mt-1" style={{ fontSize: "9px" }}>{s}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
+              {/* Results */}
               {result && !loading && (
-                <>
-                  <SignalBadge signal={result.signal} ticker={result.ticker} processingTimeMs={result.processing_time_ms} />
-                  <BacktestChart equityCurve={result.equity_curve} startDate={result.backtest_results?.start_date} endDate={result.backtest_results?.end_date} strategyName={result.selected_strategy} />
-                  <MetricsTable backtestResults={result.backtest_results} riskMetrics={result.risk_metrics} marketData={result.market_data} />
+                <div className="space-y-4 animate-slide-up">
+                  <SignalBadge
+                    signal={result.signal}
+                    ticker={result.ticker}
+                    processingTimeMs={result.processing_time_ms}
+                  />
+                  <MetricsTable
+                    backtestResults={result.backtest_results}
+                    riskMetrics={result.risk_metrics}
+                    marketData={result.market_data}
+                  />
+                  <BacktestChart
+                    equityCurve={result.equity_curve}
+                    startDate={result.backtest_results?.start_date}
+                    endDate={result.backtest_results?.end_date}
+                    strategyName={result.selected_strategy}
+                  />
                   <RAGExplainer
                     explanation={result.final_explanation}
                     citations={result.final_citations}
@@ -156,19 +205,27 @@ const App = () => {
                     sentimentConfidence={result.sentiment_confidence}
                     sentimentDetails={result.sentiment_details}
                   />
-                </>
+                </div>
               )}
 
+              {/* Empty state */}
               {!result && !loading && !error && (
-                <div className="card border-dashed border-gray-700 text-center py-16">
-                  <div className="text-5xl mb-4">📈</div>
-                  <h3 className="text-xl font-semibold text-gray-400 mb-2">Ready to Analyze</h3>
-                  <p className="text-gray-500 text-sm max-w-sm mx-auto">
+                <div className="card border-dashed border-slate-200 text-center py-16 animate-fade-in">
+                  <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">📈</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-700 mb-1">Ready to Analyze</h3>
+                  <p className="text-slate-400 text-sm max-w-xs mx-auto">
                     Enter a ticker and question to get an AI-powered analysis backed by SEC filings and real backtesting data.
                   </p>
-                  <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
                     {["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA", "JPM"].map((t) => (
-                      <span key={t} className="text-xs text-gray-500 bg-gray-800 px-3 py-1 rounded-full">{t}</span>
+                      <span
+                        key={t}
+                        className="text-xs text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-lg font-mono font-medium hover:border-indigo-300 hover:text-indigo-600 cursor-pointer transition-colors"
+                      >
+                        {t}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -177,35 +234,29 @@ const App = () => {
           </div>
         )}
 
-        {/* ===== TAB 2: PORTFOLIO ===== */}
         {activeTab === "portfolio" && <PortfolioTracker />}
-
-        {/* ===== TAB 3: COMPARE ===== */}
-        {activeTab === "compare" && <CompareStocks />}
-
-        {/* ===== TAB 4: OPTIMIZE ===== */}
-        {activeTab === "optimize" && <StrategyOptimizer />}
-
-        {/* ===== TAB 5: ALERTS ===== */}
-        {activeTab === "alerts" && <PriceAlerts />}
-
-        {/* ===== TAB 6: EARNINGS ===== */}
-        {activeTab === "earnings" && <EarningsCalendar />}
-
-        {/* ===== TAB 7: VALIDATE ===== */}
-        {activeTab === "validate" && <WalkForwardAnalysis />}
-
-        {/* ===== TAB 8: LIVE CHART ===== */}
-        {activeTab === "live" && <LivePriceChart />}
+        {activeTab === "compare"   && <CompareStocks />}
+        {activeTab === "optimize"  && <StrategyOptimizer />}
+        {activeTab === "alerts"    && <PriceAlerts />}
+        {activeTab === "earnings"  && <EarningsCalendar />}
+        {activeTab === "validate"  && <WalkForwardAnalysis />}
+        {activeTab === "live"      && <LivePriceChart />}
 
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 mt-16 py-6 text-center text-xs text-gray-600">
-        QuantMind — LangGraph + RAG + DSA + MERN |{" "}
-        <a href="https://github.com/MohanpandeyA/quantmind" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-400 underline">
-          GitHub
-        </a>
+      <footer className="border-t border-slate-100 mt-12 py-5 text-center">
+        <p className="text-xs text-slate-400">
+          QuantMind · LangGraph + RAG + DSA ·{" "}
+          <a
+            href="https://github.com/MohanpandeyA/quantmind"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-500 hover:text-indigo-600 underline underline-offset-2"
+          >
+            GitHub
+          </a>
+        </p>
       </footer>
     </div>
   );

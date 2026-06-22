@@ -138,25 +138,25 @@ const CandleTooltip = ({ active, payload }) => {
   if (!d) return null;
   const isBullish = d.close >= d.open;
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-xs shadow-xl">
-      <div className="text-gray-400 mb-1 font-mono">{d.time}</div>
+    <div className="bg-white border border-slate-200 rounded-lg p-3 text-xs shadow-xl">
+      <div className="text-slate-400 mb-1 font-mono">{d.time}</div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-        <span className="text-gray-500">Open</span>
-        <span className="text-white font-mono">${d.open?.toFixed(2)}</span>
-        <span className="text-gray-500">High</span>
-        <span className="text-green-400 font-mono">${d.high?.toFixed(2)}</span>
-        <span className="text-gray-500">Low</span>
+        <span className="text-slate-400">Open</span>
+        <span className="text-slate-900 font-mono">${d.open?.toFixed(2)}</span>
+        <span className="text-slate-400">High</span>
+        <span className="text-emerald-600 font-mono">${d.high?.toFixed(2)}</span>
+        <span className="text-slate-400">Low</span>
         <span className="text-red-400 font-mono">${d.low?.toFixed(2)}</span>
-        <span className="text-gray-500">Close</span>
-        <span className={`font-mono font-bold ${isBullish ? "text-green-400" : "text-red-400"}`}>
+        <span className="text-slate-400">Close</span>
+        <span className={`font-mono font-bold ${isBullish ? "text-emerald-600" : "text-red-400"}`}>
           ${d.close?.toFixed(2)}
         </span>
-        <span className="text-gray-500">Volume</span>
-        <span className="text-gray-300 font-mono">{(d.volume / 1e6).toFixed(2)}M</span>
+        <span className="text-slate-400">Volume</span>
+        <span className="text-slate-600 font-mono">{(d.volume / 1e6).toFixed(2)}M</span>
         {d.ema != null && (
           <>
-            <span className="text-gray-500">EMA(20)</span>
-            <span className="text-blue-400 font-mono">${d.ema?.toFixed(2)}</span>
+            <span className="text-slate-400">EMA(20)</span>
+            <span className="text-indigo-500 font-mono">${d.ema?.toFixed(2)}</span>
           </>
         )}
       </div>
@@ -338,10 +338,10 @@ const LivePriceChart = () => {
   const xTickInterval = Math.max(1, Math.floor(candles.length / 8));
 
   const statusConfig = {
-    idle:       { color: "text-gray-500",   dot: "bg-gray-600",                    label: "Idle" },
-    connecting: { color: "text-yellow-400", dot: "bg-yellow-400 animate-pulse",    label: "Connecting" },
-    live:       { color: "text-green-400",  dot: "bg-green-400 animate-pulse",     label: "LIVE" },
-    closed:     { color: "text-gray-400",   dot: "bg-gray-500",                    label: "Disconnected" },
+    idle:       { color: "text-slate-400",   dot: "bg-slate-300",                    label: "Idle" },
+    connecting: { color: "text-amber-500", dot: "bg-amber-500 animate-pulse",    label: "Connecting" },
+    live:       { color: "text-emerald-600",  dot: "bg-emerald-500 animate-pulse",     label: "LIVE" },
+    closed:     { color: "text-slate-400",   dot: "bg-gray-500",                    label: "Disconnected" },
     error:      { color: "text-red-400",    dot: "bg-red-500",                     label: "Error" },
   };
   const sc = statusConfig[status] || statusConfig.idle;
@@ -358,22 +358,22 @@ const LivePriceChart = () => {
         {/* Row 1: Ticker + Start/Stop */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Ticker</label>
+            <label className="block text-xs text-slate-400 mb-1 uppercase tracking-wider">Ticker</label>
             <TickerAutocomplete value={inputTicker} onChange={setInputTicker} placeholder="AAPL, MSFT, TSLA..." />
           </div>
           <div className="flex gap-2">
             <button
               onClick={handleStart}
               disabled={status === "connecting"}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900
-                         text-white text-sm font-semibold rounded-lg transition-colors"
+              className="px-5 py-2 btn-primary
+                         text-slate-900 text-sm font-semibold rounded-lg transition-colors"
             >
               {status === "live" ? "🔄 Reload" : "▶ Start"}
             </button>
             {(status === "live" || status === "connecting") && (
               <button
                 onClick={handleStop}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900
                            text-sm font-semibold rounded-lg transition-colors"
               >
                 ⏹ Stop
@@ -390,8 +390,8 @@ const LivePriceChart = () => {
               onClick={() => setInputTicker(t)}
               className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
                 inputTicker === t
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800 text-gray-400 hover:text-gray-200"
+                  ? "bg-indigo-600 text-slate-900"
+                  : "bg-slate-100 text-slate-400 hover:text-slate-700"
               }`}
             >
               {t}
@@ -401,7 +401,7 @@ const LivePriceChart = () => {
 
         {/* Row 3: Period selector */}
         <div>
-          <label className="block text-xs text-gray-500 mb-1.5 uppercase tracking-wider">Time Range</label>
+          <label className="block text-xs text-slate-400 mb-1.5 uppercase tracking-wider">Time Range</label>
           <div className="flex flex-wrap gap-1.5">
             {PERIOD_OPTIONS.map((p) => (
               <button
@@ -409,8 +409,8 @@ const LivePriceChart = () => {
                 onClick={() => handlePeriodChange(p.value)}
                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                   period === p.value
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+                    ? "bg-indigo-600 text-slate-900"
+                    : "bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200"
                 }`}
               >
                 {p.label}
@@ -421,7 +421,7 @@ const LivePriceChart = () => {
 
         {/* Row 4: Interval selector (filtered by period) */}
         <div>
-          <label className="block text-xs text-gray-500 mb-1.5 uppercase tracking-wider">Interval</label>
+          <label className="block text-xs text-slate-400 mb-1.5 uppercase tracking-wider">Interval</label>
           <div className="flex flex-wrap gap-1.5">
             {periodConfig.intervals.map((intv) => (
               <button
@@ -429,8 +429,8 @@ const LivePriceChart = () => {
                 onClick={() => setInterval(intv)}
                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                   interval === intv
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+                    ? "bg-purple-600 text-slate-900"
+                    : "bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200"
                 }`}
               >
                 {INTERVAL_LABELS[intv] || intv}
@@ -445,10 +445,10 @@ const LivePriceChart = () => {
         <div className="card">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-baseline gap-3">
-              <span className="text-2xl font-black text-white">{ticker}</span>
-              <span className="text-3xl font-bold text-white">${currentPrice?.toFixed(2)}</span>
+              <span className="text-2xl font-black text-slate-900">{ticker}</span>
+              <span className="text-3xl font-bold text-slate-900">${currentPrice?.toFixed(2)}</span>
               {priceChange != null && (
-                <span className={`text-lg font-semibold ${isPositive ? "text-green-400" : "text-red-400"}`}>
+                <span className={`text-lg font-semibold ${isPositive ? "text-emerald-600" : "text-red-400"}`}>
                   {isPositive ? "▲" : "▼"} {Math.abs(priceChange).toFixed(2)}
                   {" "}({isPositive ? "+" : ""}{changePct?.toFixed(2)}%)
                 </span>
@@ -457,22 +457,22 @@ const LivePriceChart = () => {
             <div className={`flex items-center gap-2 text-sm ${sc.color}`}>
               <span className={`w-2 h-2 rounded-full ${sc.dot}`}></span>
               <span className="font-medium">{sc.label}</span>
-              {statusMsg && <span className="text-gray-500 text-xs">— {statusMsg}</span>}
+              {statusMsg && <span className="text-slate-400 text-xs">— {statusMsg}</span>}
             </div>
           </div>
 
           {/* OHLCV row */}
           <div className="flex flex-wrap gap-4 mt-3 text-sm">
             {[
-              { label: "Open",    value: `$${lastCandle.open?.toFixed(2)}`,  color: "text-gray-300" },
-              { label: "High",    value: `$${lastCandle.high?.toFixed(2)}`,  color: "text-green-400" },
+              { label: "Open",    value: `$${lastCandle.open?.toFixed(2)}`,  color: "text-slate-600" },
+              { label: "High",    value: `$${lastCandle.high?.toFixed(2)}`,  color: "text-emerald-600" },
               { label: "Low",     value: `$${lastCandle.low?.toFixed(2)}`,   color: "text-red-400" },
-              { label: "Close",   value: `$${lastCandle.close?.toFixed(2)}`, color: "text-white" },
-              { label: "Volume",  value: `${((lastCandle.volume||0)/1e6).toFixed(2)}M`, color: "text-gray-300" },
-              { label: "EMA(20)", value: lastCandle.ema ? `$${lastCandle.ema?.toFixed(2)}` : "—", color: "text-blue-400" },
+              { label: "Close",   value: `$${lastCandle.close?.toFixed(2)}`, color: "text-slate-900" },
+              { label: "Volume",  value: `${((lastCandle.volume||0)/1e6).toFixed(2)}M`, color: "text-slate-600" },
+              { label: "EMA(20)", value: lastCandle.ema ? `$${lastCandle.ema?.toFixed(2)}` : "—", color: "text-indigo-500" },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex flex-col">
-                <span className="text-xs text-gray-500 uppercase tracking-wider">{label}</span>
+                <span className="text-xs text-slate-400 uppercase tracking-wider">{label}</span>
                 <span className={`font-mono font-semibold ${color}`}>{value}</span>
               </div>
             ))}
@@ -482,13 +482,13 @@ const LivePriceChart = () => {
 
       {/* ── Idle state ── */}
       {status === "idle" && (
-        <div className="card border-dashed border-gray-700 text-center py-16">
+        <div className="card border-dashed border-slate-200 text-center py-16">
           <div className="text-5xl mb-4">📈</div>
-          <h3 className="text-xl font-semibold text-gray-400 mb-2">Real-Time Candlestick Chart</h3>
-          <p className="text-gray-500 text-sm max-w-sm mx-auto">
-            Select a ticker, time range, and interval — then click <strong className="text-gray-300">▶ Start</strong>.
+          <h3 className="text-xl font-semibold text-slate-400 mb-2">Real-Time Candlestick Chart</h3>
+          <p className="text-slate-400 text-sm max-w-sm mx-auto">
+            Select a ticker, time range, and interval — then click <strong className="text-slate-600">▶ Start</strong>.
           </p>
-          <div className="mt-3 text-xs text-gray-600">
+          <div className="mt-3 text-xs text-slate-400">
             WebSocket streaming · EMA(20) O(1) incremental · Up to 100 candles
           </div>
         </div>
@@ -496,12 +496,12 @@ const LivePriceChart = () => {
 
       {/* ── Connecting ── */}
       {status === "connecting" && (
-        <div className="card border border-yellow-800/50">
+        <div className="card border border-amber-200">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full border-4 border-yellow-900 border-t-yellow-400 animate-spin"></div>
             <div>
-              <h3 className="text-yellow-400 font-semibold">Connecting...</h3>
-              <p className="text-gray-400 text-sm">
+              <h3 className="text-amber-500 font-semibold">Connecting...</h3>
+              <p className="text-slate-400 text-sm">
                 Fetching {PERIOD_OPTIONS.find(p=>p.value===period)?.label} candles for {ticker}
               </p>
             </div>
@@ -529,10 +529,10 @@ const LivePriceChart = () => {
       {candles.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
               {ticker} · {PERIOD_OPTIONS.find(p=>p.value===period)?.label} · {INTERVAL_LABELS[interval]||interval} Candlestick
             </h3>
-            <div className="flex items-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-4 text-xs text-slate-400">
               <span className="flex items-center gap-1">
                 <span className="w-3 h-0.5 bg-blue-400 inline-block"></span> EMA(20)
               </span>
@@ -582,7 +582,7 @@ const LivePriceChart = () => {
       {/* ── Volume Chart ── */}
       {candles.length > 0 && (
         <div className="card">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Volume</h3>
+          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Volume</h3>
           <ResponsiveContainer width="100%" height={100}>
             <ComposedChart data={candles} margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
               <XAxis dataKey="time" hide />
@@ -610,7 +610,7 @@ const LivePriceChart = () => {
       )}
 
       {/* ── Footer ── */}
-      <div className="text-xs text-gray-600 text-center">
+      <div className="text-xs text-slate-400 text-center">
         Data: yfinance · WebSocket push every 5s (intraday) / 60s (daily) ·
         EMA(20) O(1) incremental · Max {MAX_CANDLES} candles
       </div>

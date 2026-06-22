@@ -1,25 +1,14 @@
-/**
- * PortfolioTracker — real-time P&L for all portfolio positions.
- *
- * WHY THIS COMPONENT EXISTS:
- *   A trader manages multiple positions simultaneously. This component:
- *   1. Shows all positions with real-time P&L (green/red)
- *   2. Displays portfolio totals (total value, total return)
- *   3. Highlights best and worst performers
- *   4. Allows adding/removing positions
- *
- * DESIGN DECISIONS:
- *   - Color coding: green = profit, red = loss (universal trading convention)
- *   - Percentage AND absolute P&L shown (traders need both)
- *   - 52-week range bar shows where current price sits in the year's range
- *   - "Add Position" form is inline (no modal) for faster workflow
- */
-
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import TickerAutocomplete from "./TickerAutocomplete";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+
+const fmt = {
+  price: (v) => v != null ? `$${Number(v).toFixed(2)}` : "--",
+  pct: (v) => v != null ? `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(2)}%` : "--",
+  usd: (v) => v != null ? `$${Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "--",
+};
 
 const PortfolioTracker = () => {
   const [performance, setPerformance] = useState(null);
@@ -27,11 +16,8 @@ const PortfolioTracker = () => {
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPosition, setNewPosition] = useState({
-    ticker: "",
-    shares: "",
-    entry_price: "",
-    entry_date: new Date().toISOString().split("T")[0],
-    notes: "",
+    ticker: "", shares: "", entry_price: "",
+    entry_date: new Date().toISOString().split("T")[0], notes: "",
   });
 
   const fetchPerformance = useCallback(async () => {
@@ -49,7 +35,6 @@ const PortfolioTracker = () => {
 
   useEffect(() => {
     fetchPerformance();
-    // Auto-refresh every 60 seconds
     const interval = setInterval(fetchPerformance, 60_000);
     return () => clearInterval(interval);
   }, [fetchPerformance]);
@@ -62,8 +47,8 @@ const PortfolioTracker = () => {
         shares: parseFloat(newPosition.shares),
         entry_price: parseFloat(newPosition.entry_price),
       });
-      setNewPosition({ ticker: "", shares: "", entry_price: "", entry_date: new Date().toISOString().split("T")[0], notes: "" });
       setShowAddForm(false);
+      setNewPosition({ ticker: "", shares: "", entry_price: "", entry_date: new Date().toISOString().split("T")[0], notes: "" });
       fetchPerformance();
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
@@ -71,7 +56,6 @@ const PortfolioTracker = () => {
   };
 
   const removePosition = async (ticker) => {
-    if (!confirm(`Remove ${ticker} from portfolio?`)) return;
     try {
       await axios.delete(`${BASE_URL}/portfolio/positions/${ticker}`);
       fetchPerformance();
@@ -80,208 +64,138 @@ const PortfolioTracker = () => {
     }
   };
 
-  const pnlColor = (val) => val >= 0 ? "text-green-400" : "text-red-400";
-  const pnlBg = (val) => val >= 0 ? "bg-green-900/20 border-green-800" : "bg-red-900/20 border-red-800";
-  const fmt = {
-    price: (v) => `$${v?.toFixed(2) ?? "—"}`,
-    pct: (v) => `${v >= 0 ? "+" : ""}${v?.toFixed(2) ?? "0"}%`,
-    usd: (v) => `${v >= 0 ? "+" : ""}$${Math.abs(v ?? 0).toFixed(2)}`,
-  };
+  const totalPnl = performance?.total_unrealized_pnl || 0;
+  const totalPnlPct = performance?.total_unrealized_pnl_pct || 0;
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <span>💼</span> Portfolio Tracker
-        </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={fetchPerformance}
-            className="text-xs text-gray-400 hover:text-gray-300 bg-gray-800 px-3 py-1.5 rounded-lg"
-          >
-            🔄 Refresh
-          </button>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="text-xs text-blue-400 hover:text-blue-300 bg-blue-900/30 px-3 py-1.5 rounded-lg"
-          >
-            + Add Position
-          </button>
-        </div>
+        <h2 className="text-xl font-bold text-slate-900">Portfolio</h2>
+        <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary text-sm">
+          {showAddForm ? "Cancel" : "+ Add Position"}
+        </button>
       </div>
 
-      {/* Add Position Form */}
+      {error && (
+        <div className="card border-red-100 bg-red-50">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Summary cards */}
+      {performance && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="metric-card">
+            <div className="metric-value">{fmt.usd(performance.total_current_value)}</div>
+            <div className="metric-label">Total Value</div>
+          </div>
+          <div className="metric-card">
+            <div className={`metric-value ${totalPnl >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              {fmt.usd(totalPnl)}
+            </div>
+            <div className="metric-label">Unrealized P&L</div>
+          </div>
+          <div className="metric-card">
+            <div className={`metric-value ${totalPnlPct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              {fmt.pct(totalPnlPct)}
+            </div>
+            <div className="metric-label">Return</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-value">{performance.position_count}</div>
+            <div className="metric-label">Positions</div>
+          </div>
+        </div>
+      )}
+
+      {/* Add position form */}
       {showAddForm && (
-        <div className="card border border-blue-800/50">
-          <h3 className="text-sm font-semibold text-blue-400 mb-3">Add New Position</h3>
+        <div className="card">
+          <p className="section-title mb-4">Add Position</p>
           <form onSubmit={addPosition} className="grid grid-cols-2 gap-3">
-            <TickerAutocomplete
-              value={newPosition.ticker}
-              onChange={(val) => setNewPosition({ ...newPosition, ticker: val.toUpperCase() })}
-              onSelect={({ symbol }) => setNewPosition({ ...newPosition, ticker: symbol })}
-              placeholder="Ticker (e.g. AAPL, RELIANCE.NS)"
-              showHint={false}
-            />
-            <input
-              type="number"
-              placeholder="Shares"
-              value={newPosition.shares}
-              onChange={(e) => setNewPosition({ ...newPosition, shares: e.target.value })}
-              className="input-field text-sm"
-              min="0.001"
-              step="0.001"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Entry Price ($)"
-              value={newPosition.entry_price}
-              onChange={(e) => setNewPosition({ ...newPosition, entry_price: e.target.value })}
-              className="input-field text-sm"
-              min="0.01"
-              step="0.01"
-              required
-            />
-            <input
-              type="date"
-              value={newPosition.entry_date}
-              onChange={(e) => setNewPosition({ ...newPosition, entry_date: e.target.value })}
-              className="input-field text-sm"
-              required
-            />
-            <input
-              placeholder="Notes (optional)"
-              value={newPosition.notes}
-              onChange={(e) => setNewPosition({ ...newPosition, notes: e.target.value })}
-              className="input-field text-sm col-span-2"
-            />
-            <div className="col-span-2 flex gap-2">
-              <button type="submit" className="btn-primary text-sm flex-1">Add Position</button>
-              <button type="button" onClick={() => setShowAddForm(false)} className="text-sm text-gray-400 hover:text-gray-300 px-4">Cancel</button>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Ticker</label>
+              <TickerAutocomplete
+                value={newPosition.ticker}
+                onChange={(v) => setNewPosition((p) => ({ ...p, ticker: v.toUpperCase() }))}
+                onSelect={({ symbol }) => setNewPosition((p) => ({ ...p, ticker: symbol }))}
+                placeholder="AAPL"
+                showHint={false}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Shares</label>
+              <input type="number" value={newPosition.shares} onChange={(e) => setNewPosition((p) => ({ ...p, shares: e.target.value }))} placeholder="10" className="input-field" required />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Entry Price</label>
+              <input type="number" step="0.01" value={newPosition.entry_price} onChange={(e) => setNewPosition((p) => ({ ...p, entry_price: e.target.value }))} placeholder="150.00" className="input-field" required />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Entry Date</label>
+              <input type="date" value={newPosition.entry_date} onChange={(e) => setNewPosition((p) => ({ ...p, entry_date: e.target.value }))} className="input-field" />
+            </div>
+            <div className="col-span-2">
+              <button type="submit" className="btn-primary w-full">Add Position</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="card border border-red-800 bg-red-900/20 text-red-400 text-sm">{error}</div>
-      )}
-
-      {/* Loading */}
-      {loading && !performance && (
-        <div className="card text-center text-gray-500 py-8">Loading portfolio...</div>
-      )}
-
-      {/* Empty state */}
-      {performance && performance.position_count === 0 && (
-        <div className="card border-dashed border-gray-700 text-center py-12">
-          <div className="text-4xl mb-3">💼</div>
-          <p className="text-gray-400">No positions yet. Add your first position above.</p>
+      {/* Positions table */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <p className="section-title">Positions</p>
+          <button onClick={fetchPerformance} disabled={loading} className="btn-ghost text-xs">
+            {loading ? "..." : "Refresh"}
+          </button>
         </div>
-      )}
 
-      {/* Portfolio summary */}
-      {performance && performance.position_count > 0 && (
-        <>
-          <div className={`card border ${pnlBg(performance.total_unrealized_pnl)}`}>
-            <div className="grid grid-cols-4 gap-4">
-              <div>
-                <div className="metric-label">Total Value</div>
-                <div className="metric-value text-white">{fmt.price(performance.total_current_value)}</div>
-              </div>
-              <div>
-                <div className="metric-label">Cost Basis</div>
-                <div className="metric-value text-gray-300">{fmt.price(performance.total_cost_basis)}</div>
-              </div>
-              <div>
-                <div className="metric-label">Unrealized P&L</div>
-                <div className={`metric-value ${pnlColor(performance.total_unrealized_pnl)}`}>
-                  {fmt.usd(performance.total_unrealized_pnl)}
+        {loading && !performance && (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => <div key={i} className="skeleton h-12 rounded-xl" />)}
+          </div>
+        )}
+
+        {performance?.positions?.length === 0 && (
+          <div className="text-center py-10">
+            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <span className="text-xl">💼</span>
+            </div>
+            <p className="text-slate-500 text-sm">No positions yet</p>
+            <p className="text-slate-400 text-xs mt-1">Add your first position to track P&L</p>
+          </div>
+        )}
+
+        {performance?.positions?.map((pos) => {
+          const pnl = pos.unrealized_pnl || 0;
+          const pnlPct = pos.unrealized_pnl_pct || 0;
+          return (
+            <div key={pos.ticker} className="table-row">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center">
+                  <span className="text-xs font-bold text-indigo-600">{pos.ticker?.slice(0, 2)}</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900 text-sm font-mono">{pos.ticker}</div>
+                  <div className="text-xs text-slate-400">{pos.shares} shares @ {fmt.price(pos.entry_price)}</div>
                 </div>
               </div>
-              <div>
-                <div className="metric-label">Total Return</div>
-                <div className={`metric-value ${pnlColor(performance.total_unrealized_pnl_pct)}`}>
-                  {fmt.pct(performance.total_unrealized_pnl_pct)}
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-sm font-semibold text-slate-900">{fmt.price(pos.current_price)}</div>
+                  <div className={`text-xs font-medium ${pnl >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {fmt.usd(pnl)} ({fmt.pct(pnlPct)})
+                  </div>
                 </div>
+                <button onClick={() => removePosition(pos.ticker)} className="btn-ghost text-xs text-red-400 hover:text-red-600 hover:bg-red-50">
+                  Remove
+                </button>
               </div>
             </div>
-            {performance.best_performer && (
-              <div className="mt-3 pt-3 border-t border-gray-800 flex gap-4 text-xs text-gray-400">
-                <span>🏆 Best: <span className="text-green-400 font-semibold">{performance.best_performer}</span></span>
-                <span>📉 Worst: <span className="text-red-400 font-semibold">{performance.worst_performer}</span></span>
-                <span className="ml-auto">Updated: {new Date(performance.last_updated).toLocaleTimeString()}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Position rows */}
-          <div className="space-y-2">
-            {performance.positions.map((pos) => (
-              <div key={pos.ticker} className={`card border ${pnlBg(pos.unrealized_pnl)} hover:border-opacity-80 transition-all`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <div className="text-lg font-bold text-white font-mono">{pos.ticker}</div>
-                      <div className="text-xs text-gray-500">{pos.shares} shares @ {fmt.price(pos.entry_price)}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-white font-semibold">{fmt.price(pos.current_price)}</div>
-                      <div className={`text-xs ${pnlColor(pos.price_change_pct)}`}>
-                        {fmt.pct(pos.price_change_pct)} today
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <div className={`font-bold ${pnlColor(pos.unrealized_pnl)}`}>
-                        {fmt.usd(pos.unrealized_pnl)}
-                      </div>
-                      <div className={`text-sm ${pnlColor(pos.unrealized_pnl_pct)}`}>
-                        {fmt.pct(pos.unrealized_pnl_pct)}
-                      </div>
-                    </div>
-                    <div className="text-right text-xs text-gray-500">
-                      <div>Value: {fmt.price(pos.current_value)}</div>
-                      <div>Cost: {fmt.price(pos.cost_basis)}</div>
-                    </div>
-                    <button
-                      onClick={() => removePosition(pos.ticker)}
-                      className="text-gray-600 hover:text-red-400 transition-colors text-lg"
-                      title="Remove position"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-
-                {/* 52-week range bar */}
-                <div className="mt-2 pt-2 border-t border-gray-800/50">
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>{fmt.price(pos.week_52_low)}</span>
-                    <div className="flex-1 bg-gray-800 rounded-full h-1.5 relative">
-                      <div
-                        className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
-                        style={{
-                          width: `${Math.min(100, Math.max(0,
-                            ((pos.current_price - pos.week_52_low) /
-                             (pos.week_52_high - pos.week_52_low)) * 100
-                          ))}%`
-                        }}
-                      />
-                    </div>
-                    <span>{fmt.price(pos.week_52_high)}</span>
-                    <span className="text-gray-600">52W</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 };
