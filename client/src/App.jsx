@@ -14,29 +14,24 @@ import WalkForwardAnalysis from "./components/WalkForwardAnalysis";
 import LivePriceChart from "./components/LivePriceChart";
 
 const TABS = [
-  { id: "analyze",   label: "Analyze",   icon: "Search" },
-  { id: "portfolio", label: "Portfolio", icon: "Briefcase" },
-  { id: "compare",   label: "Compare",   icon: "BarChart2" },
-  { id: "optimize",  label: "Optimize",  icon: "Settings" },
-  { id: "alerts",    label: "Alerts",    icon: "Bell" },
-  { id: "earnings",  label: "Earnings",  icon: "Calendar" },
-  { id: "validate",  label: "Validate",  icon: "FlaskConical" },
-  { id: "live",      label: "Live",      icon: "TrendingUp" },
+  { id: "analyze",   label: "Analyze",   emoji: "🔍" },
+  { id: "portfolio", label: "Portfolio", emoji: "💼" },
+  { id: "compare",   label: "Compare",   emoji: "📊" },
+  { id: "optimize",  label: "Optimize",  emoji: "⚙️" },
+  { id: "alerts",    label: "Alerts",    emoji: "🔔" },
+  { id: "earnings",  label: "Earnings",  emoji: "📅" },
+  { id: "validate",  label: "Validate",  emoji: "🔬" },
+  { id: "live",      label: "Live",      emoji: "📈" },
 ];
 
-const TAB_EMOJIS = {
-  analyze: "🔍", portfolio: "💼", compare: "📊", optimize: "⚙️",
-  alerts: "🔔", earnings: "📅", validate: "🔬", live: "📈",
-};
-
 const HOW_IT_WORKS = [
-  { icon: "🔍", step: "Research",  desc: "Fetches real-time market data" },
-  { icon: "📚", step: "RAG",       desc: "Retrieves SEC filings and news" },
-  { icon: "🧠", step: "Sentiment", desc: "FinBERT scores news sentiment" },
-  { icon: "📊", step: "Strategy",  desc: "Selects optimal strategy" },
-  { icon: "⚡", step: "Backtest",  desc: "Runs historical simulation" },
-  { icon: "⚠️", step: "Risk",      desc: "Evaluates Sharpe, VaR, MDD" },
-  { icon: "🤖", step: "Explain",   desc: "AI generates cited answer" },
+  { emoji: "🔍", step: "Research",  desc: "Fetches real-time market data" },
+  { emoji: "📚", step: "RAG",       desc: "Retrieves SEC filings and news" },
+  { emoji: "🧠", step: "Sentiment", desc: "FinBERT scores news sentiment" },
+  { emoji: "📊", step: "Strategy",  desc: "Selects optimal strategy" },
+  { emoji: "⚡", step: "Backtest",  desc: "Runs historical simulation" },
+  { emoji: "⚠️", step: "Risk",      desc: "Evaluates Sharpe, VaR, MDD" },
+  { emoji: "🤖", step: "Explain",   desc: "AI generates cited answer" },
 ];
 
 const AGENT_STEPS = ["Research", "RAG", "Sentiment", "Strategy", "Backtest", "Risk", "Explain"];
@@ -46,218 +41,237 @@ const App = () => {
   const { result, loading, error, analyze, reset } = useAnalysis();
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #dde3ee 0%, #c8d0e0 100%)" }}>
 
-      {/* Header */}
-      <header className="bg-white border-b border-slate-100 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6">
+      {/* ── Outer container (like the reference image's rounded white box) ── */}
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 16px" }}>
 
-          {/* Top bar */}
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-                <span className="text-white text-sm font-bold">Q</span>
+        {/* ── Main app card ── */}
+        <div style={{
+          background: "#f0f3f9",
+          borderRadius: "24px",
+          overflow: "hidden",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)",
+          minHeight: "calc(100vh - 48px)",
+        }}>
+
+          {/* ── Header ── */}
+          <div style={{
+            background: "#ffffff",
+            borderBottom: "1px solid #e8edf5",
+            padding: "0 28px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: "60px" }}>
+              {/* Logo */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{
+                  width: "36px", height: "36px",
+                  background: "linear-gradient(135deg, #4f46e5, #818cf8)",
+                  borderRadius: "10px",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 2px 8px rgba(79,70,229,0.4)",
+                }}>
+                  <span style={{ color: "white", fontWeight: "800", fontSize: "16px" }}>Q</span>
+                </div>
+                <div>
+                  <div style={{ fontWeight: "800", fontSize: "16px", color: "#0f172a", letterSpacing: "-0.02em" }}>QuantMind</div>
+                  <div style={{ fontSize: "11px", color: "#94a3b8" }}>AI Trading Advisor</div>
+                </div>
               </div>
-              <div>
-                <span className="text-slate-900 font-bold text-base tracking-tight">QuantMind</span>
-                <span className="hidden sm:inline text-slate-400 text-xs ml-2">AI Trading Advisor</span>
+
+              {/* Right */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "6px",
+                  fontSize: "11px", color: "#64748b",
+                  background: "#f1f5f9", border: "1px solid #e2e8f0",
+                  padding: "6px 12px", borderRadius: "20px",
+                }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", display: "inline-block", animation: "pulse 2s infinite" }}></span>
+                  LangGraph + RAG + DSA
+                </div>
+                {result && activeTab === "analyze" && (
+                  <button onClick={reset} style={{ fontSize: "12px", color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}>
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                LangGraph + RAG + DSA
-              </div>
-              {result && activeTab === "analyze" && (
-                <button onClick={reset} className="btn-ghost text-xs">
-                  Clear
+            {/* Tab navigation */}
+            <div style={{ display: "flex", gap: "2px", overflowX: "auto" }}>
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "6px",
+                    padding: "12px 16px",
+                    fontSize: "13px", fontWeight: "500",
+                    whiteSpace: "nowrap",
+                    border: "none", background: "none", cursor: "pointer",
+                    borderBottom: activeTab === tab.id ? "2px solid #4f46e5" : "2px solid transparent",
+                    color: activeTab === tab.id ? "#4f46e5" : "#64748b",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <span style={{ fontSize: "14px" }}>{tab.emoji}</span>
+                  {tab.label}
                 </button>
-              )}
+              ))}
             </div>
           </div>
 
-          {/* Tab navigation */}
-          <div className="flex gap-0.5 overflow-x-auto -mb-px">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={[
-                  "flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all duration-150",
-                  activeTab === tab.id
-                    ? "border-indigo-600 text-indigo-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200",
-                ].join(" ")}
-              >
-                <span className="text-base leading-none">{TAB_EMOJIS[tab.id]}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
+          {/* ── Content area ── */}
+          <div style={{ padding: "24px 28px" }}>
 
-      {/* Main content */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
+            {/* ANALYZE TAB */}
+            {activeTab === "analyze" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "20px" }}>
 
-        {/* ANALYZE TAB */}
-        {activeTab === "analyze" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* Left */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <TickerSearch onAnalyze={analyze} loading={loading} />
 
-            {/* Left column */}
-            <div className="lg:col-span-1 space-y-4">
-              <TickerSearch onAnalyze={analyze} loading={loading} />
+                  {!result && !loading && (
+                    <div className="card">
+                      <p className="section-title" style={{ marginBottom: "16px" }}>How It Works</p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {HOW_IT_WORKS.map(({ emoji, step, desc }, i) => (
+                          <div key={step} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                            <div style={{
+                              width: "32px", height: "32px", borderRadius: "8px",
+                              background: "linear-gradient(135deg, #f1f5f9, #e2e8f0)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              flexShrink: 0, fontSize: "14px",
+                            }}>
+                              {emoji}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: "13px", fontWeight: "600", color: "#334155" }}>
+                                <span style={{ color: "#94a3b8", marginRight: "4px" }}>{i + 1}.</span>
+                                {step}
+                              </div>
+                              <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>{desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-              {!result && !loading && (
-                <div className="card">
-                  <p className="section-title mb-4">How It Works</p>
-                  <div className="space-y-3">
-                    {HOW_IT_WORKS.map(({ icon, step, desc }, i) => (
-                      <div key={step} className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0 text-sm">
-                          {icon}
+                {/* Right */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+                  {error && (
+                    <div className="card" style={{ borderLeft: "4px solid #ef4444", background: "#fff5f5" }}>
+                      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                        <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ color: "#dc2626", fontWeight: "700" }}>!</span>
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-slate-700">
-                            <span className="text-slate-400 mr-1">{i + 1}.</span>
-                            {step}
+                          <div style={{ fontWeight: "600", color: "#dc2626", fontSize: "14px" }}>Analysis Failed</div>
+                          <div style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px" }}>{error}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {loading && (
+                    <div className="card">
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <div style={{
+                          width: "40px", height: "40px", borderRadius: "50%",
+                          border: "3px solid #e0e7ff", borderTopColor: "#4f46e5",
+                          animation: "spin 0.8s linear infinite", flexShrink: 0,
+                        }}></div>
+                        <div>
+                          <div style={{ fontWeight: "600", color: "#1e293b", fontSize: "14px" }}>Running Analysis</div>
+                          <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "2px" }}>7 AI agents working in sequence</div>
+                        </div>
+                      </div>
+                      <div style={{ marginTop: "16px", display: "flex", gap: "6px" }}>
+                        {AGENT_STEPS.map((s, i) => (
+                          <div key={s} style={{ flex: 1 }}>
+                            <div style={{ height: "4px", borderRadius: "2px", background: "#e0e7ff", overflow: "hidden" }}>
+                              <div style={{
+                                height: "100%", background: "linear-gradient(90deg, #4f46e5, #818cf8)",
+                                borderRadius: "2px", animation: `pulse 1.5s ease-in-out ${i * 0.15}s infinite`,
+                              }} />
+                            </div>
+                            <div style={{ textAlign: "center", fontSize: "9px", color: "#94a3b8", marginTop: "4px" }}>{s}</div>
                           </div>
-                          <div className="text-xs text-slate-400 mt-0.5">{desc}</div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Right column */}
-            <div className="lg:col-span-2 space-y-4">
-
-              {/* Error state */}
-              {error && (
-                <div className="card border-red-100 bg-red-50 animate-fade-in">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-red-600 text-sm font-bold">!</span>
                     </div>
-                    <div>
-                      <h3 className="text-red-700 font-semibold text-sm">Analysis Failed</h3>
-                      <p className="text-red-600/80 text-sm mt-1">{error}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {/* Loading state */}
-              {loading && (
-                <div className="card animate-fade-in">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full border-2 border-slate-100 border-t-indigo-600 animate-spin flex-shrink-0"></div>
-                    <div>
-                      <h3 className="text-slate-800 font-semibold text-sm">Running Analysis</h3>
-                      <p className="text-slate-400 text-xs mt-0.5">7 AI agents working in sequence</p>
+                  {result && !loading && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <SignalBadge signal={result.signal} ticker={result.ticker} processingTimeMs={result.processing_time_ms} />
+                      <MetricsTable backtestResults={result.backtest_results} riskMetrics={result.risk_metrics} marketData={result.market_data} />
+                      <BacktestChart equityCurve={result.equity_curve} startDate={result.backtest_results?.start_date} endDate={result.backtest_results?.end_date} strategyName={result.selected_strategy} />
+                      <RAGExplainer explanation={result.final_explanation} citations={result.final_citations} strategyRationale={result.strategy_rationale} selectedStrategy={result.selected_strategy} sentimentScore={result.sentiment_score} sentimentLabel={result.sentiment_label} sentimentConfidence={result.sentiment_confidence} sentimentDetails={result.sentiment_details} />
                     </div>
-                  </div>
-                  <div className="mt-4 flex gap-1.5">
-                    {AGENT_STEPS.map((s, i) => (
-                      <div key={s} className="flex-1">
-                        <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className="h-full bg-indigo-500 rounded-full animate-pulse"
-                            style={{ animationDelay: `${i * 0.15}s` }}
-                          />
-                        </div>
-                        <p className="text-center text-slate-400 mt-1" style={{ fontSize: "9px" }}>{s}</p>
+                  )}
+
+                  {!result && !loading && !error && (
+                    <div className="card" style={{ textAlign: "center", padding: "64px 24px", border: "2px dashed #e2e8f0" }}>
+                      <div style={{
+                        width: "64px", height: "64px", borderRadius: "20px",
+                        background: "linear-gradient(135deg, #eef2ff, #e0e7ff)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        margin: "0 auto 16px", fontSize: "28px",
+                      }}>📈</div>
+                      <div style={{ fontSize: "18px", fontWeight: "700", color: "#334155", marginBottom: "8px" }}>Ready to Analyze</div>
+                      <div style={{ fontSize: "13px", color: "#94a3b8", maxWidth: "280px", margin: "0 auto 20px" }}>
+                        Enter a ticker and question to get an AI-powered analysis backed by SEC filings and real backtesting data.
                       </div>
-                    ))}
-                  </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px" }}>
+                        {["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA", "JPM"].map((t) => (
+                          <span key={t} style={{
+                            fontSize: "12px", color: "#64748b",
+                            background: "#f8fafc", border: "1px solid #e2e8f0",
+                            padding: "6px 12px", borderRadius: "8px",
+                            fontFamily: "monospace", fontWeight: "600",
+                            cursor: "pointer",
+                          }}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Results */}
-              {result && !loading && (
-                <div className="space-y-4 animate-slide-up">
-                  <SignalBadge
-                    signal={result.signal}
-                    ticker={result.ticker}
-                    processingTimeMs={result.processing_time_ms}
-                  />
-                  <MetricsTable
-                    backtestResults={result.backtest_results}
-                    riskMetrics={result.risk_metrics}
-                    marketData={result.market_data}
-                  />
-                  <BacktestChart
-                    equityCurve={result.equity_curve}
-                    startDate={result.backtest_results?.start_date}
-                    endDate={result.backtest_results?.end_date}
-                    strategyName={result.selected_strategy}
-                  />
-                  <RAGExplainer
-                    explanation={result.final_explanation}
-                    citations={result.final_citations}
-                    strategyRationale={result.strategy_rationale}
-                    selectedStrategy={result.selected_strategy}
-                    sentimentScore={result.sentiment_score}
-                    sentimentLabel={result.sentiment_label}
-                    sentimentConfidence={result.sentiment_confidence}
-                    sentimentDetails={result.sentiment_details}
-                  />
-                </div>
-              )}
+            {activeTab === "portfolio" && <PortfolioTracker />}
+            {activeTab === "compare"   && <CompareStocks />}
+            {activeTab === "optimize"  && <StrategyOptimizer />}
+            {activeTab === "alerts"    && <PriceAlerts />}
+            {activeTab === "earnings"  && <EarningsCalendar />}
+            {activeTab === "validate"  && <WalkForwardAnalysis />}
+            {activeTab === "live"      && <LivePriceChart />}
 
-              {/* Empty state */}
-              {!result && !loading && !error && (
-                <div className="card border-dashed border-slate-200 text-center py-16 animate-fade-in">
-                  <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl">📈</span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-700 mb-1">Ready to Analyze</h3>
-                  <p className="text-slate-400 text-sm max-w-xs mx-auto">
-                    Enter a ticker and question to get an AI-powered analysis backed by SEC filings and real backtesting data.
-                  </p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    {["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA", "JPM"].map((t) => (
-                      <span
-                        key={t}
-                        className="text-xs text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-lg font-mono font-medium hover:border-indigo-300 hover:text-indigo-600 cursor-pointer transition-colors"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
-        )}
 
-        {activeTab === "portfolio" && <PortfolioTracker />}
-        {activeTab === "compare"   && <CompareStocks />}
-        {activeTab === "optimize"  && <StrategyOptimizer />}
-        {activeTab === "alerts"    && <PriceAlerts />}
-        {activeTab === "earnings"  && <EarningsCalendar />}
-        {activeTab === "validate"  && <WalkForwardAnalysis />}
-        {activeTab === "live"      && <LivePriceChart />}
+          {/* Footer */}
+          <div style={{ borderTop: "1px solid #e8edf5", padding: "16px 28px", textAlign: "center" }}>
+            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+              QuantMind · LangGraph + RAG + DSA ·{" "}
+              <a href="https://github.com/MohanpandeyA/quantmind" target="_blank" rel="noopener noreferrer" style={{ color: "#6366f1", textDecoration: "underline" }}>
+                GitHub
+              </a>
+            </span>
+          </div>
 
-      </main>
+        </div>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-100 mt-12 py-5 text-center">
-        <p className="text-xs text-slate-400">
-          QuantMind · LangGraph + RAG + DSA ·{" "}
-          <a
-            href="https://github.com/MohanpandeyA/quantmind"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-500 hover:text-indigo-600 underline underline-offset-2"
-          >
-            GitHub
-          </a>
-        </p>
-      </footer>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+      `}</style>
     </div>
   );
 };

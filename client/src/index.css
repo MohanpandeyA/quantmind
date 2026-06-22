@@ -2,52 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─────────────────────────────────────────────────────────────
-   QuantMind Design System — Clean Light Fintech Theme
-   Inspired by: Stripe, Linear, Vercel dashboards
-   ───────────────────────────────────────────────────────────── */
-
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    @apply font-sans antialiased;
+    background: #dde3ee;
+    color: #0f172a;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   h1, h2, h3, h4 {
     @apply font-semibold tracking-tight text-slate-900;
   }
-
-  * {
-    @apply border-slate-200;
-  }
 }
 
 @layer components {
 
-  /* ── Cards ── */
+  /* ── Page wrapper — gives the "app inside browser" feel ── */
+  .page-wrapper {
+    @apply min-h-screen;
+    background: linear-gradient(135deg, #dde3ee 0%, #c8d0e0 100%);
+  }
+
+  /* ── Cards — white with real depth ── */
   .card {
-    @apply bg-white border border-slate-100 rounded-2xl p-6 shadow-sm;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.08);
+    border: 1px solid rgba(255,255,255,0.8);
   }
 
   .card-sm {
-    @apply bg-white border border-slate-100 rounded-xl p-4 shadow-sm;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.06);
   }
 
   /* ── Buttons ── */
   .btn-primary {
-    @apply bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
-           text-white font-medium text-sm
+    @apply font-medium text-sm text-white
            px-5 py-2.5 rounded-xl transition-all duration-150
-           disabled:opacity-40 disabled:cursor-not-allowed
-           shadow-sm hover:shadow-md;
+           disabled:opacity-40 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    box-shadow: 0 2px 8px rgba(79,70,229,0.35);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+    box-shadow: 0 4px 12px rgba(79,70,229,0.45);
+    transform: translateY(-1px);
   }
 
   .btn-secondary {
-    @apply bg-white hover:bg-slate-50 active:bg-slate-100
-           text-slate-700 font-medium text-sm
+    @apply font-medium text-sm text-slate-700
            px-5 py-2.5 rounded-xl transition-all duration-150
            border border-slate-200 hover:border-slate-300
            disabled:opacity-40 disabled:cursor-not-allowed;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: #f8fafc;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
   }
 
   .btn-ghost {
@@ -57,16 +73,24 @@
 
   /* ── Inputs ── */
   .input-field {
-    @apply bg-white border border-slate-200 text-slate-900
-           rounded-xl px-4 py-2.5 w-full
-           focus:outline-none focus:ring-2 focus:ring-indigo-500/20
-           focus:border-indigo-400 transition-all duration-150
+    @apply text-slate-900 rounded-xl px-4 py-2.5 w-full
+           focus:outline-none transition-all duration-150
            placeholder-slate-400 text-sm;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+  }
+  .input-field:focus {
+    background: #ffffff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
   }
 
   /* ── Metric cards ── */
   .metric-card {
-    @apply bg-white border border-slate-100 rounded-xl p-4 shadow-sm;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e8edf5;
   }
 
   .metric-value {
@@ -79,28 +103,14 @@
 
   /* ── Badges ── */
   .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
 
-  .badge-green {
-    @apply bg-emerald-50 text-emerald-700 border border-emerald-100;
-  }
-
-  .badge-red {
-    @apply bg-red-50 text-red-700 border border-red-100;
-  }
-
-  .badge-amber {
-    @apply bg-amber-50 text-amber-700 border border-amber-100;
-  }
-
-  .badge-indigo {
-    @apply bg-indigo-50 text-indigo-700 border border-indigo-100;
-  }
-
-  .badge-slate {
-    @apply bg-slate-100 text-slate-600 border border-slate-200;
-  }
+  .badge-green  { @apply bg-emerald-100 text-emerald-700; }
+  .badge-red    { @apply bg-red-100 text-red-700; }
+  .badge-amber  { @apply bg-amber-100 text-amber-700; }
+  .badge-indigo { @apply bg-indigo-100 text-indigo-700; }
+  .badge-slate  { @apply bg-slate-100 text-slate-600; }
 
   /* ── Section headers ── */
   .section-title {
@@ -114,7 +124,7 @@
 
   /* ── Loading skeleton ── */
   .skeleton {
-    @apply bg-slate-100 animate-pulse rounded-lg;
+    @apply bg-slate-100 animate-pulse rounded-xl;
   }
 
   /* ── Chip / pill selectors ── */
@@ -122,62 +132,35 @@
     @apply px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer
            transition-all duration-150 border;
   }
+  .chip-active   { @apply bg-indigo-600 text-white border-indigo-600; box-shadow: 0 2px 6px rgba(79,70,229,0.3); }
+  .chip-inactive { @apply bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50; }
 
-  .chip-active {
-    @apply bg-indigo-600 text-white border-indigo-600 shadow-sm;
-  }
-
-  .chip-inactive {
-    @apply bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50;
-  }
-
-  /* ── Table ── */
+  /* ── Table rows ── */
   .table-row {
     @apply flex items-center justify-between py-3 border-b border-slate-50 last:border-0;
   }
 
-  /* ── Status dot ── */
-  .status-dot-green {
-    @apply w-2 h-2 rounded-full bg-emerald-500;
+  /* ── Icon containers (colored circles like reference) ── */
+  .icon-circle {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0;
   }
-
-  .status-dot-red {
-    @apply w-2 h-2 rounded-full bg-red-500;
-  }
-
-  .status-dot-amber {
-    @apply w-2 h-2 rounded-full bg-amber-500;
-  }
+  .icon-circle-indigo { background: linear-gradient(135deg, #4f46e5, #818cf8); }
+  .icon-circle-emerald { background: linear-gradient(135deg, #059669, #34d399); }
+  .icon-circle-red { background: linear-gradient(135deg, #dc2626, #f87171); }
+  .icon-circle-amber { background: linear-gradient(135deg, #d97706, #fbbf24); }
 }
 
-/* ── Scrollbar styling ── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* ── Recharts tooltip override ── */
+/* ── Recharts tooltip ── */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
   background: white !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 12px !important;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
   padding: 10px 14px !important;
-}
-
-/* ── Smooth transitions ── */
-* {
-  transition-property: color, background-color, border-color, box-shadow;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 100ms;
 }
