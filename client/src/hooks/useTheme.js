@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 
+// v2 key — forces dark default even for users who had old "light" stored
+const STORAGE_KEY = "qm-theme-v2";
+
 export const useTheme = () => {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("qm-theme") || "dark";
+    return localStorage.getItem(STORAGE_KEY) || "dark";
   });
 
   useEffect(() => {
@@ -12,7 +15,7 @@ export const useTheme = () => {
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("qm-theme", theme);
+    localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
