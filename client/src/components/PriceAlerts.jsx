@@ -21,7 +21,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import TickerAutocomplete from "./TickerAutocomplete";
 
-const WS_URL = "ws://localhost:8000/alerts/ws";
+// Derive WebSocket URL from current page host — works on any port and in production
+const _apiBase = import.meta.env.VITE_API_URL || "";
+const _wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
+const WS_URL = _apiBase.startsWith("http")
+  ? _apiBase.replace(/^http/, "ws") + "/alerts/ws"
+  : `${_wsProto}//${window.location.hostname}:8003/alerts/ws`;
 
 const CONDITION_LABELS = {
   price_below: "Price drops below $",

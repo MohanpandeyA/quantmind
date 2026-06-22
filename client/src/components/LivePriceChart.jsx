@@ -39,7 +39,14 @@ import TickerAutocomplete from "./TickerAutocomplete";
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const WS_BASE    = "ws://localhost:8000/live-chart/ws";
+// Derive WebSocket base URL from current page host so it works on any port
+// In dev: Vite proxies /api/* to FastAPI, but WebSocket needs direct connection
+// We read VITE_WS_URL env var (set in .env.local) or fall back to same host
+const _apiBase = import.meta.env.VITE_API_URL || "";
+const _wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
+const WS_BASE = _apiBase.startsWith("http")
+  ? _apiBase.replace(/^http/, "ws") + "/live-chart/ws"
+  : `${_wsProto}//${window.location.hostname}:8003/live-chart/ws`;
 const MAX_CANDLES = 100;
 const EMA_SPAN   = 20;
 const EMA_ALPHA  = 2 / (EMA_SPAN + 1);
