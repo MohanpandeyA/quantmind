@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 export const useTheme = () => {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("qm-theme") || "light";
+    return localStorage.getItem("qm-theme") || "dark";
   });
 
   useEffect(() => {
