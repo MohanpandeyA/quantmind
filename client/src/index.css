@@ -280,3 +280,110 @@
 .animate-spin { animation: spin 0.75s linear infinite; }
 .animate-fade-in { animation: fadeIn 0.25s ease-out; }
 .animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* ═══════════════════════════════════════════════════════════
+   DARK MODE — applied when <html class="dark">
+   ═══════════════════════════════════════════════════════════ */
+
+.dark body {
+  background-color: #0F1117;
+  color: #F1F5F9;
+}
+
+/* Dark page background */
+.dark .qm-page {
+  background: linear-gradient(135deg, #0F1117 0%, #161B27 100%) !important;
+}
+
+/* Dark app shell */
+.dark .qm-shell {
+  background: #1A1F2E !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3) !important;
+}
+
+/* Dark header */
+.dark .qm-header {
+  background: #111827 !important;
+  border-bottom-color: #1F2937 !important;
+}
+
+/* Dark footer */
+.dark .qm-footer {
+  background: #111827 !important;
+  border-top-color: #1F2937 !important;
+  color: #6B7280 !important;
+}
+
+/* Dark cards */
+.dark .card {
+  background: #1E2433 !important;
+  border-color: #2D3748 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+}
+
+.dark .card-sm {
+  background: #1E2433 !important;
+  border-color: #2D3748 !important;
+}
+
+/* Dark metric cards */
+.dark .metric-card {
+  background: #252D3D !important;
+  border-color: #2D3748 !important;
+}
+
+.dark .metric-value { color: #F1F5F9 !important; }
+.dark .metric-label { color: #6B7280 !important; }
+
+/* Dark inputs */
+.dark .input-field {
+  background: #252D3D !important;
+  border-color: #374151 !important;
+  color: #F1F5F9 !important;
+}
+.dark .input-field::placeholder { color: #6B7280 !important; }
+.dark .input-field:focus {
+  border-color: #6366F1 !important;
+  background: #2D3748 !important;
+}
+
+/* Dark section title */
+.dark .section-title { color: #6B7280 !important; }
+
+/* Dark divider */
+.dark .divider { border-top-color: #2D3748 !important; }
+
+/* Dark table rows */
+.dark .table-row { border-bottom-color: #1F2937 !important; }
+
+/* Dark chips */
+.dark .chip-inactive {
+  background: #252D3D !important;
+  color: #9CA3AF !important;
+  border-color: #374151 !important;
+}
+.dark .chip-inactive:hover {
+  border-color: #6366F1 !important;
+  color: #818CF8 !important;
+  background: #1E2433 !important;
+}
+
+/* Dark skeleton */
+.dark .skeleton { background: #252D3D !important; }
+
+/* Dark text overrides */
+.dark h1, .dark h2, .dark h3, .dark h4 { color: #F1F5F9 !important; }
+
+/* Dark status pill */
+.dark .qm-status-pill {
+  background: #1F2937 !important;
+  border-color: #374151 !important;
+  color: #9CA3AF !important;
+}
+
+/* Dark recharts */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  stroke: #2D3748 !important;
+}
+.dark .recharts-text { fill: #6B7280 !important; }

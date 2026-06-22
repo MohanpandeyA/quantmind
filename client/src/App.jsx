@@ -1,5 +1,6 @@
 import { useState } from "react";
 import useAnalysis from "./hooks/useAnalysis";
+import { useTheme } from "./hooks/useTheme";
 import TickerSearch from "./components/TickerSearch";
 import SignalBadge from "./components/SignalBadge";
 import BacktestChart from "./components/BacktestChart";

@@ -365,8 +365,7 @@ const LivePriceChart = () => {
             <button
               onClick={handleStart}
               disabled={status === "connecting"}
-              className="px-5 py-2 btn-primary
-                         text-slate-900 text-sm font-semibold rounded-lg transition-colors"
+              className="btn-primary text-sm"
             >
               {status === "live" ? "🔄 Reload" : "▶ Start"}
             </button>
@@ -388,10 +387,10 @@ const LivePriceChart = () => {
             <button
               key={t}
               onClick={() => setInputTicker(t)}
-              className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+              className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
                 inputTicker === t
-                  ? "bg-indigo-600 text-slate-900"
-                  : "bg-slate-100 text-slate-400 hover:text-slate-700"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-100 text-slate-500 hover:text-slate-700 hover:bg-slate-200"
               }`}
             >
               {t}
@@ -409,8 +408,8 @@ const LivePriceChart = () => {
                 onClick={() => handlePeriodChange(p.value)}
                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                   period === p.value
-                    ? "bg-indigo-600 text-slate-900"
-                    : "bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-500 hover:text-slate-700 hover:bg-slate-200"
                 }`}
               >
                 {p.label}
@@ -429,8 +428,8 @@ const LivePriceChart = () => {
                 onClick={() => setInterval(intv)}
                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                   interval === intv
-                    ? "bg-purple-600 text-slate-900"
-                    : "bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-500 hover:text-slate-700 hover:bg-slate-200"
                 }`}
               >
                 {INTERVAL_LABELS[intv] || intv}
