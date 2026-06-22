@@ -40,6 +40,8 @@ from api.routes.optimize import router as optimize_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.ticker import router as ticker_router
 from api.routes.walk_forward import router as walk_forward_router
+from api.routes.paper_trade import router as paper_trade_router
+from api.routes.whatif import router as whatif_router
 from api.schemas import HealthResponse
 from config.logging_config import get_logger, setup_logging, stop_logging
 from config.settings import settings
@@ -176,6 +178,8 @@ app.include_router(earnings_router)
 app.include_router(ticker_router)
 app.include_router(walk_forward_router)
 app.include_router(live_chart_router)
+app.include_router(paper_trade_router)
+app.include_router(whatif_router)
 
 
 # --- Health check endpoint ---
