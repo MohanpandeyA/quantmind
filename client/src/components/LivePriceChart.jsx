@@ -51,8 +51,18 @@ const WS_BASE = _wsExplicit
   ? _wsExplicit.replace(/\/?$/, "") + "/live-chart/ws"
   : _apiBase.startsWith("http")
   ? _apiBase.replace(/^http/, "ws") + "/live-chart/ws"
-  : `${_wsProto}//${window.location.hostname}:8003/live-chart/ws`;
+  : `${_wsProto}//${window.location.hostname}:8000/live-chart/ws`;
+
+// HTTP health URL for wake-up ping (Render free tier cold start fix)
+const HTTP_HEALTH_URL = _wsExplicit
+  ? _wsExplicit.replace(/^wss?/, "https").replace(/\/?$/, "") + "/health"
+  : _apiBase.startsWith("http")
+  ? _apiBase.replace(/\/?$/, "") + "/health"
+  : `${window.location.protocol}//${window.location.hostname}:8000/health`;
+
 const MAX_CANDLES = 100;
+const WS_MAX_RETRIES = 5;
+const WS_BASE_DELAY_MS = 2000;
 const EMA_SPAN   = 20;
 const EMA_ALPHA  = 2 / (EMA_SPAN + 1);
 
@@ -183,9 +193,14 @@ const LivePriceChart = () => {
   const [lastCandle, setLastCandle]   = useState(null);
   const [prevClose, setPrevClose]     = useState(null);
 
-  const wsRef      = useRef(null);
-  const emaRef     = useRef(null);
-  const candlesRef = useRef([]);
+  const wsRef         = useRef(null);
+  const emaRef        = useRef(null);
+  const candlesRef    = useRef([]);
+  const retryRef      = useRef(0);
+  const retryTimerRef = useRef(null);
+  const activeSymRef  = useRef(null);
+  const activePerRef  = useRef(null);
+  const activeIntvRef = useRef(null);
 
   useEffect(() => { candlesRef.current = candles; }, [candles]);
 
@@ -195,23 +210,35 @@ const LivePriceChart = () => {
   // ---------------------------------------------------------------------------
   // WebSocket lifecycle
   // ---------------------------------------------------------------------------
-  const connect = useCallback((sym, per, intv) => {
+  const connect = useCallback((sym, per, intv, isRetry = false) => {
     if (wsRef.current) {
+      wsRef.current.onclose = null; // prevent retry loop on manual reconnect
       wsRef.current.close();
       wsRef.current = null;
     }
+    clearTimeout(retryTimerRef.current);
+
+    // Store active params so retry can reuse them
+    activeSymRef.current  = sym;
+    activePerRef.current  = per;
+    activeIntvRef.current = intv;
+
+    if (!isRetry) {
+      retryRef.current = 0;
+      setCandles([]);
+      candlesRef.current = [];
+      emaRef.current = null;
+    }
 
     setStatus("connecting");
-    setStatusMsg(`Connecting to ${sym}...`);
-    setCandles([]);
-    candlesRef.current = [];
-    emaRef.current = null;
+    setStatusMsg(isRetry ? `Reconnecting to ${sym}… (attempt ${retryRef.current}/${WS_MAX_RETRIES})` : `Connecting to ${sym}...`);
 
     const url = `${WS_BASE}/${sym}?period=${per}&interval=${intv}`;
     const ws  = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      retryRef.current = 0; // reset on successful connect
       setStatus("connecting");
       setStatusMsg("Waiting for data...");
     };
@@ -221,7 +248,13 @@ const LivePriceChart = () => {
         const msg = JSON.parse(event.data);
 
         if (msg.type === "history") {
-          const hist  = msg.candles || [];
+          const hist = msg.candles || [];
+          if (hist.length === 0) {
+            // Market closed or no data — show informative message, stay "live"
+            setStatus("live");
+            setStatusMsg(`${sym} · Market closed or no data for this range`);
+            return;
+          }
           const emas  = computeEMA(hist);
           emaRef.current = emas[emas.length - 1] ?? null;
           const enriched = hist.map((c, i) => ({ ...c, ema: emas[i] }));
@@ -271,18 +304,36 @@ const LivePriceChart = () => {
     };
 
     ws.onerror = () => {
-      setStatus("error");
-      setStatusMsg("WebSocket connection failed");
+      // onerror always precedes onclose — let onclose handle retry
     };
 
     ws.onclose = () => {
-      setStatus((prev) => prev === "error" ? "error" : "closed");
+      setStatus((prev) => {
+        if (prev === "idle") return "idle"; // user stopped manually
+        if (prev === "error") return "error";
+        // Auto-retry on unexpected close
+        if (retryRef.current < WS_MAX_RETRIES && activeSymRef.current) {
+          retryRef.current += 1;
+          const delay = WS_BASE_DELAY_MS * Math.pow(2, retryRef.current - 1);
+          retryTimerRef.current = setTimeout(() => {
+            connect(activeSymRef.current, activePerRef.current, activeIntvRef.current, true);
+          }, delay);
+          return "connecting";
+        }
+        return "closed";
+      });
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cleanup on unmount
+  // Cleanup on unmount — also cancel any pending retry timer
   useEffect(() => {
-    return () => { if (wsRef.current) wsRef.current.close(); };
+    return () => {
+      clearTimeout(retryTimerRef.current);
+      if (wsRef.current) {
+        wsRef.current.onclose = null; // prevent retry after unmount
+        wsRef.current.close();
+      }
+    };
   }, []);
 
   // Track whether chart is currently streaming (via ref to avoid stale closure)
@@ -305,11 +356,20 @@ const LivePriceChart = () => {
     const sym = inputTicker.trim().toUpperCase();
     if (!sym) return;
     setTicker(sym);
-    connect(sym, period, interval);
+    // Fire-and-forget wake-up ping to warm Render free tier before WS connect
+    fetch(HTTP_HEALTH_URL, { method: "GET", signal: AbortSignal.timeout(5000) })
+      .catch(() => {}) // ignore — just warming up
+      .finally(() => connect(sym, period, interval));
   };
 
   const handleStop = () => {
-    if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
+    clearTimeout(retryTimerRef.current);
+    activeSymRef.current = null; // prevent retry after manual stop
+    if (wsRef.current) {
+      wsRef.current.onclose = null;
+      wsRef.current.close();
+      wsRef.current = null;
+    }
     setStatus("idle");
     setStatusMsg("");
     isStreamingRef.current = false;
@@ -498,18 +558,35 @@ const LivePriceChart = () => {
         </div>
       )}
 
-      {/* ── Connecting ── */}
+      {/* ── Connecting / Reconnecting ── */}
       {status === "connecting" && (
         <div className="card border border-amber-200">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full border-4 border-yellow-900 border-t-yellow-400 animate-spin"></div>
+            <div className="w-10 h-10 rounded-full border-4 border-yellow-900 border-t-yellow-400 animate-spin flex-shrink-0"></div>
             <div>
-              <h3 className="text-amber-500 font-semibold">Connecting...</h3>
-              <p className="text-slate-400 text-sm">
-                Fetching {PERIOD_OPTIONS.find(p=>p.value===period)?.label} candles for {ticker}
-              </p>
+              <h3 className="text-amber-500 font-semibold">{statusMsg.includes("Reconnecting") ? "Reconnecting…" : "Connecting…"}</h3>
+              <p className="text-slate-400 text-sm">{statusMsg}</p>
+              {statusMsg.includes("Reconnecting") && (
+                <p className="text-slate-400 text-xs mt-1">
+                  Backend may be waking up (Render free tier cold start ~30s)
+                </p>
+              )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Live but no candles (market closed) ── */}
+      {status === "live" && candles.length === 0 && (
+        <div className="card border border-slate-200 text-center py-12">
+          <div className="text-4xl mb-3">🌙</div>
+          <h3 className="text-lg font-semibold text-slate-500 mb-1">Market Closed</h3>
+          <p className="text-slate-400 text-sm max-w-sm mx-auto">
+            No data available for <strong className="text-slate-600">{ticker}</strong> in the selected range.
+            Try a longer time range (e.g. <strong>1 Month</strong>) or check back during market hours
+            (Mon–Fri 9:30 AM – 4:00 PM ET).
+          </p>
+          <p className="text-slate-400 text-xs mt-3">{statusMsg}</p>
         </div>
       )}
 

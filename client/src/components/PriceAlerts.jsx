@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import TickerAutocomplete from "./TickerAutocomplete";
 
 // WebSocket URL: VITE_WS_URL > VITE_API_URL (http→ws swap) > same host
@@ -9,26 +9,51 @@ const WS_URL = _wsExplicit
   ? _wsExplicit.replace(/\/?$/, "") + "/alerts/ws"
   : _apiBase.startsWith("http")
   ? _apiBase.replace(/^http/, "ws") + "/alerts/ws"
-  : `${_wsProto}//${window.location.hostname}:8003/alerts/ws`;
+  : `${_wsProto}//${window.location.hostname}:8000/alerts/ws`;
+
+// HTTP health URL for wake-up ping (Render free tier cold start fix)
+const HTTP_HEALTH_URL = _wsExplicit
+  ? _wsExplicit.replace(/^wss?/, "https").replace(/\/?$/, "") + "/health"
+  : _apiBase.startsWith("http")
+  ? _apiBase.replace(/\/?$/, "") + "/health"
+  : `${window.location.protocol}//${window.location.hostname}:8000/health`;
+
+const MAX_RETRIES = 8;
+const BASE_DELAY_MS = 1500; // 1.5s → 3s → 6s → 12s … (exponential backoff)
 
 const PriceAlerts = () => {
   const [connected, setConnected] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [alerts, setAlerts] = useState([]);
   const [fired, setFired] = useState([]);
   const [ticker, setTicker] = useState("");
   const [condition, setCondition] = useState("price_below");
   const [threshold, setThreshold] = useState("");
   const wsRef = useRef(null);
+  const retryTimerRef = useRef(null);
+  const retryCountRef = useRef(0);
+  const unmountedRef = useRef(false);
 
-  useEffect(() => {
+  const connect = useCallback(() => {
+    if (unmountedRef.current) return;
+    if (wsRef.current && wsRef.current.readyState < 2) {
+      wsRef.current.close();
+    }
+
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
 
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => setConnected(false);
-    ws.onerror = () => setConnected(false);
+    ws.onopen = () => {
+      if (unmountedRef.current) return;
+      setConnected(true);
+      setReconnecting(false);
+      retryCountRef.current = 0;
+      setRetryCount(0);
+    };
 
     ws.onmessage = (e) => {
+      if (unmountedRef.current) return;
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === "connected") setAlerts(msg.alerts || []);
@@ -38,10 +63,50 @@ const PriceAlerts = () => {
       } catch {}
     };
 
-    return () => ws.close();
-  }, []);
+    ws.onclose = () => {
+      if (unmountedRef.current) return;
+      setConnected(false);
+      scheduleReconnect();
+    };
 
-  const send = (msg) => wsRef.current?.readyState === 1 && wsRef.current.send(JSON.stringify(msg));
+    ws.onerror = () => {
+      if (unmountedRef.current) return;
+      setConnected(false);
+      // onerror is always followed by onclose — reconnect handled there
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const scheduleReconnect = useCallback(() => {
+    if (unmountedRef.current) return;
+    if (retryCountRef.current >= MAX_RETRIES) {
+      setReconnecting(false);
+      return;
+    }
+    const delay = BASE_DELAY_MS * Math.pow(2, retryCountRef.current);
+    retryCountRef.current += 1;
+    setRetryCount(retryCountRef.current);
+    setReconnecting(true);
+    retryTimerRef.current = setTimeout(() => {
+      if (!unmountedRef.current) connect();
+    }, delay);
+  }, [connect]);
+
+  // Initial connection — ping HTTP first to wake Render free tier
+  useEffect(() => {
+    unmountedRef.current = false;
+    // Fire-and-forget wake-up ping; connect regardless of result
+    fetch(HTTP_HEALTH_URL, { method: "GET", signal: AbortSignal.timeout(5000) })
+      .catch(() => {}) // ignore errors — just warming up
+      .finally(() => { if (!unmountedRef.current) connect(); });
+
+    return () => {
+      unmountedRef.current = true;
+      clearTimeout(retryTimerRef.current);
+      if (wsRef.current) wsRef.current.close();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const send = (msg) => wsRef.current?.readyState === WebSocket.OPEN && wsRef.current.send(JSON.stringify(msg));
 
   const addAlert = (e) => {
     e.preventDefault();
@@ -57,9 +122,17 @@ const PriceAlerts = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-900">Price Alerts</h2>
-        <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${connected ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-slate-50 border-slate-200 text-slate-500"}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}></span>
-          {connected ? "Connected" : "Disconnected"}
+        <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${
+          connected
+            ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+            : reconnecting
+            ? "bg-amber-50 border-amber-200 text-amber-600"
+            : "bg-slate-50 border-slate-200 text-slate-500"
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            connected ? "bg-emerald-500 animate-pulse" : reconnecting ? "bg-amber-400 animate-pulse" : "bg-slate-400"
+          }`}></span>
+          {connected ? "Connected" : reconnecting ? `Reconnecting… (${retryCount}/${MAX_RETRIES})` : "Disconnected"}
         </div>
       </div>
 
