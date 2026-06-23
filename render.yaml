@@ -64,6 +64,11 @@ services:
         value: https://paper-api.alpaca.markets
         sync: true
 
+      # Production frontend URL — added to CORS allowed origins
+      - key: FRONTEND_URL
+        value: https://quantmind.vercel.app
+        sync: true
+
       # ChromaDB: use /tmp on free tier (ephemeral but works for demo)
       # For persistent storage, upgrade to Starter and use a Render Disk
       - key: CHROMA_PERSIST_DIR

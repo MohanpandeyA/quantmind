@@ -61,6 +61,12 @@ class Settings(BaseSettings):
         description="Alpaca base URL (paper or live)",
     )
 
+    # --- Deployment ---
+    frontend_url: str = Field(
+        default="",
+        description="Production frontend URL added to CORS (e.g. https://quantmind.vercel.app)",
+    )
+
     # --- Paid Upgrades (optional, leave empty) ---
     openai_api_key: str = Field(default="", description="OpenAI API key (paid)")
     pinecone_api_key: str = Field(default="", description="Pinecone API key (paid)")
