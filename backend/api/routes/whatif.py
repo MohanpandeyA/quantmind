@@ -1,4 +1,5 @@
 """What-If Simulator route — POST /whatif."""
+
 from __future__ import annotations
 import re
 import time
@@ -54,7 +55,9 @@ HISTORICAL_SCENARIOS = {
 def _detect_scenario(question: str):
     q = question.lower()
     shock_match = re.search(r"(drop|fall|decline|crash|down)\s+(\d+(?:\.\d+)?)\s*%", q)
-    rise_match = re.search(r"(rise|gain|up|rally|jump|increase)\s+(\d+(?:\.\d+)?)\s*%", q)
+    rise_match = re.search(
+        r"(rise|gain|up|rally|jump|increase)\s+(\d+(?:\.\d+)?)\s*%", q
+    )
     if shock_match:
         return "price_shock", -float(shock_match.group(2)), None, None
     if rise_match:
@@ -79,6 +82,7 @@ def _run_mini_backtest(ticker: str, start: str, end: str, strategy: str) -> dict
         from engine.strategies.rsi_strategy import RSIStrategy
         from engine.strategies.macd_strategy import MACDStrategy
         from engine.strategies.base_strategy import StrategyConfig
+
         strat_config = StrategyConfig(initial_capital=100_000)
         strat_map = {
             "momentum": MomentumStrategy(strat_config),
@@ -90,8 +94,16 @@ def _run_mini_backtest(ticker: str, start: str, end: str, strategy: str) -> dict
         bt_config = BacktestConfig(ticker=ticker, start_date=start, end_date=end)
         bt = Backtester(config=bt_config, strategy=strat)
         result, report = bt.run()
-        sig = "BUY" if report.total_return > 0.05 else "SELL" if report.total_return < -0.05 else "HOLD"
-        return {"sharpe": report.sharpe_ratio, "total_return": report.total_return, "signal": sig}
+        sig = (
+            "BUY"
+            if report.total_return > 0.05
+            else "SELL" if report.total_return < -0.05 else "HOLD"
+        )
+        return {
+            "sharpe": report.sharpe_ratio,
+            "total_return": report.total_return,
+            "signal": sig,
+        }
     except Exception as e:
         logger.warning("WhatIf backtest failed: %s", e)
         return {"sharpe": 0.0, "total_return": 0.0, "signal": "HOLD"}
@@ -113,7 +125,9 @@ def _count_occurrences(ticker: str, shock_pct: float):
         closes_list = closes.tolist()
         returns_list = daily_returns.tolist()
         for i, ret in enumerate(returns_list):
-            if (threshold < 0 and ret < threshold) or (threshold > 0 and ret > threshold):
+            if (threshold < 0 and ret < threshold) or (
+                threshold > 0 and ret > threshold
+            ):
                 pre = closes_list[i]
                 for j in range(i + 1, min(i + 90, len(closes_list))):
                     if threshold < 0 and closes_list[j] >= pre:
@@ -128,11 +142,23 @@ def _count_occurrences(ticker: str, shock_pct: float):
         return 0, 0.0
 
 
-def _explain(ticker, question, scenario_desc, orig_sig, new_sig, price_impact, new_sharpe, occurrences, avg_recovery, strategy):
+def _explain(
+    ticker,
+    question,
+    scenario_desc,
+    orig_sig,
+    new_sig,
+    price_impact,
+    new_sharpe,
+    occurrences,
+    avg_recovery,
+    strategy,
+):
     try:
         if not settings.groq_api_key:
             raise ValueError("no key")
         from groq import Groq
+
         client = Groq(api_key=settings.groq_api_key)
         prompt = (
             f"You are QuantMind AI. Answer this what-if question in 3-4 sentences with specific numbers.\n\n"
@@ -150,9 +176,19 @@ def _explain(ticker, question, scenario_desc, orig_sig, new_sig, price_impact, n
         )
         return resp.choices[0].message.content.strip()
     except Exception:
-        sig_txt = f"signal changes from {orig_sig} to {new_sig}" if orig_sig != new_sig else f"signal remains {new_sig}"
-        rec_txt = f"Historically recovered in ~{avg_recovery:.0f} days." if avg_recovery > 0 else ""
-        occ_txt = f"This occurred {occurrences} times in 5 years." if occurrences > 0 else ""
+        sig_txt = (
+            f"signal changes from {orig_sig} to {new_sig}"
+            if orig_sig != new_sig
+            else f"signal remains {new_sig}"
+        )
+        rec_txt = (
+            f"Historically recovered in ~{avg_recovery:.0f} days."
+            if avg_recovery > 0
+            else ""
+        )
+        occ_txt = (
+            f"This occurred {occurrences} times in 5 years." if occurrences > 0 else ""
+        )
         return f"Under this scenario, the {strategy} strategy {sig_txt}. Price impact: {price_impact:+.1f}%, Sharpe: {new_sharpe:.2f}. {occ_txt} {rec_txt}".strip()
 
 
@@ -183,17 +219,38 @@ async def run_whatif(req: WhatIfRequest) -> WhatIfResponse:
         hstart = "2022-01-01"
         hend = "2024-12-31"
 
-    bt = _run_mini_backtest(ticker, hstart or "2022-01-01", hend or "2024-12-31", req.strategy or "momentum")
+    bt = _run_mini_backtest(
+        ticker, hstart or "2022-01-01", hend or "2024-12-31", req.strategy or "momentum"
+    )
     orig_sig = req.current_signal or "HOLD"
     new_sig = bt["signal"]
     orig_sharpe = req.current_sharpe or 0.5
     new_sharpe = bt["sharpe"]
     price_impact = shock if shock is not None else bt["total_return"] * 100
-    occurrences, avg_recovery = _count_occurrences(ticker, shock if shock is not None else -5.0)
-    explanation = _explain(ticker, req.question, desc, orig_sig, new_sig, price_impact, new_sharpe, occurrences, avg_recovery, req.strategy or "momentum")
+    occurrences, avg_recovery = _count_occurrences(
+        ticker, shock if shock is not None else -5.0
+    )
+    explanation = _explain(
+        ticker,
+        req.question,
+        desc,
+        orig_sig,
+        new_sig,
+        price_impact,
+        new_sharpe,
+        occurrences,
+        avg_recovery,
+        req.strategy or "momentum",
+    )
 
     ms = (time.perf_counter() - t0) * 1000
-    logger.info("WhatIf | complete | ticker=%s | signal=%s->%s | time=%.0fms", ticker, orig_sig, new_sig, ms)
+    logger.info(
+        "WhatIf | complete | ticker=%s | signal=%s->%s | time=%.0fms",
+        ticker,
+        orig_sig,
+        new_sig,
+        ms,
+    )
 
     return WhatIfResponse(
         ticker=ticker,

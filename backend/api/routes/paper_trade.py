@@ -25,7 +25,11 @@ def _alpaca_headers() -> Dict[str, str]:
 
 
 def _check_keys() -> None:
-    if not settings.alpaca_api_key or not settings.alpaca_secret_key or settings.alpaca_api_key == "your_alpaca_api_key_here":
+    if (
+        not settings.alpaca_api_key
+        or not settings.alpaca_secret_key
+        or settings.alpaca_api_key == "your_alpaca_api_key_here"
+    ):
         raise HTTPException(
             status_code=503,
             detail="Alpaca API keys not configured. Add ALPACA_API_KEY and ALPACA_SECRET_KEY to backend/.env",
@@ -36,18 +40,24 @@ def _check_keys() -> None:
 # Request/Response schemas
 # ---------------------------------------------------------------------------
 
+
 class PlaceOrderRequest(BaseModel):
     ticker: str = Field(..., description="Stock ticker symbol")
     side: str = Field(..., description="'buy' or 'sell'")
     qty: float = Field(..., gt=0, description="Number of shares")
-    signal: Optional[str] = Field(None, description="BUY/SELL/HOLD signal from QuantMind")
-    strategy: Optional[str] = Field(None, description="Strategy that generated the signal")
+    signal: Optional[str] = Field(
+        None, description="BUY/SELL/HOLD signal from QuantMind"
+    )
+    strategy: Optional[str] = Field(
+        None, description="Strategy that generated the signal"
+    )
     note: Optional[str] = Field(None, description="Optional note")
 
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.post("/order", summary="Place a paper trade order")
 async def place_order(req: PlaceOrderRequest) -> Dict[str, Any]:
@@ -71,7 +81,10 @@ async def place_order(req: PlaceOrderRequest) -> Dict[str, Any]:
 
     logger.info(
         "PaperTrade | placing order | %s %s x%.0f | signal=%s",
-        req.side.upper(), req.ticker, req.qty, req.signal,
+        req.side.upper(),
+        req.ticker,
+        req.qty,
+        req.signal,
     )
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -83,12 +96,15 @@ async def place_order(req: PlaceOrderRequest) -> Dict[str, Any]:
 
     if resp.status_code not in (200, 201):
         logger.error("PaperTrade | order failed | %d | %s", resp.status_code, resp.text)
-        raise HTTPException(status_code=resp.status_code, detail=resp.json().get("message", resp.text))
+        raise HTTPException(
+            status_code=resp.status_code, detail=resp.json().get("message", resp.text)
+        )
 
     order = resp.json()
     logger.info(
         "PaperTrade | order placed | id=%s | status=%s",
-        order.get("id"), order.get("status"),
+        order.get("id"),
+        order.get("status"),
     )
 
     return {
@@ -117,12 +133,19 @@ async def get_paper_portfolio() -> Dict[str, Any]:
 
     async with httpx.AsyncClient(timeout=15) as client:
         account_resp, positions_resp = await asyncio.gather(
-            client.get(f"{settings.alpaca_base_url}/v2/account", headers=_alpaca_headers()),
-            client.get(f"{settings.alpaca_base_url}/v2/positions", headers=_alpaca_headers()),
+            client.get(
+                f"{settings.alpaca_base_url}/v2/account", headers=_alpaca_headers()
+            ),
+            client.get(
+                f"{settings.alpaca_base_url}/v2/positions", headers=_alpaca_headers()
+            ),
         )
 
     if account_resp.status_code != 200:
-        raise HTTPException(status_code=account_resp.status_code, detail="Failed to fetch Alpaca account")
+        raise HTTPException(
+            status_code=account_resp.status_code,
+            detail="Failed to fetch Alpaca account",
+        )
 
     account = account_resp.json()
     positions = positions_resp.json() if positions_resp.status_code == 200 else []
@@ -176,7 +199,9 @@ async def get_orders(limit: int = 20) -> List[Dict[str, Any]]:
         )
 
     if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail="Failed to fetch orders")
+        raise HTTPException(
+            status_code=resp.status_code, detail="Failed to fetch orders"
+        )
 
     orders = resp.json()
     return [
