@@ -37,13 +37,19 @@ const PaperTrading = () => {
     }
   }, []);
 
-  useEffect(() => { fetchPortfolio(); }, [fetchPortfolio]);
+  // Initial fetch + auto-refresh every 10 seconds
+  useEffect(() => {
+    fetchPortfolio();
+    const interval = setInterval(fetchPortfolio, 10_000);
+    return () => clearInterval(interval);
+  }, [fetchPortfolio]);
 
   const placeOrder = async (e) => {
     e.preventDefault();
     if (!orderForm.ticker || !orderForm.qty) return;
     setOrderLoading(true);
     setOrderSuccess(null);
+    setError(null);
     try {
       const resp = await axios.post(`${BASE_URL}/paper-trade/order`, {
         ticker: orderForm.ticker.toUpperCase(),
@@ -51,7 +57,9 @@ const PaperTrading = () => {
         qty: parseFloat(orderForm.qty),
       });
       setOrderSuccess(resp.data);
-      setOrderForm({ ticker: "", side: "buy", qty: "1" });
+      setOrderForm((p) => ({ ...p, ticker: "", qty: "1" }));
+      // Immediate refresh, then again after 2s for Alpaca to settle
+      await fetchPortfolio();
       setTimeout(fetchPortfolio, 2000);
     } catch (err) {
       setError(err.response?.data?.detail || err.message);

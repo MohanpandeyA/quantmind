@@ -35,6 +35,7 @@
   ],
 
   "env": {
-    "VITE_API_URL": "/api"
+    "VITE_API_URL": "/api",
+    "VITE_WS_URL": "wss://quantmind-backend-e4qk.onrender.com"
   }
 }

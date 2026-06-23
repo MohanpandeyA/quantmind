@@ -40,11 +40,16 @@ import TickerAutocomplete from "./TickerAutocomplete";
 // Constants
 // ---------------------------------------------------------------------------
 // Derive WebSocket base URL from current page host so it works on any port
-// In dev: Vite proxies /api/* to FastAPI, but WebSocket needs direct connection
-// We read VITE_WS_URL env var (set in .env.local) or fall back to same host
-const _apiBase = import.meta.env.VITE_API_URL || "";
+// WebSocket URL resolution (works for dev, prod Vercel→Render, and Docker):
+// 1. VITE_WS_URL env var (set in Vercel env or .env.local) — highest priority
+// 2. VITE_API_URL starting with http → swap protocol to ws
+// 3. Fall back to same host as the page (works when backend is co-hosted)
 const _wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
-const WS_BASE = _apiBase.startsWith("http")
+const _apiBase = import.meta.env.VITE_API_URL || "";
+const _wsExplicit = import.meta.env.VITE_WS_URL || "";
+const WS_BASE = _wsExplicit
+  ? _wsExplicit.replace(/\/?$/, "") + "/live-chart/ws"
+  : _apiBase.startsWith("http")
   ? _apiBase.replace(/^http/, "ws") + "/live-chart/ws"
   : `${_wsProto}//${window.location.hostname}:8003/live-chart/ws`;
 const MAX_CANDLES = 100;

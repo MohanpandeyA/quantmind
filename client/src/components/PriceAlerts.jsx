@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import TickerAutocomplete from "./TickerAutocomplete";
 
-const _apiBase = import.meta.env.VITE_API_URL || "";
+// WebSocket URL: VITE_WS_URL > VITE_API_URL (http→ws swap) > same host
 const _wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
-const WS_URL = _apiBase.startsWith("http")
+const _apiBase = import.meta.env.VITE_API_URL || "";
+const _wsExplicit = import.meta.env.VITE_WS_URL || "";
+const WS_URL = _wsExplicit
+  ? _wsExplicit.replace(/\/?$/, "") + "/alerts/ws"
+  : _apiBase.startsWith("http")
   ? _apiBase.replace(/^http/, "ws") + "/alerts/ws"
   : `${_wsProto}//${window.location.hostname}:8003/alerts/ws`;
 
