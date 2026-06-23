@@ -69,6 +69,11 @@ services:
         value: https://quantmind.vercel.app
         sync: true
 
+      # Self-referencing health check URL (used for monitoring)
+      - key: RENDER_BACKEND_URL
+        value: https://quantmind-backend-e4qk.onrender.com
+        sync: true
+
       # ChromaDB: use /tmp on free tier (ephemeral but works for demo)
       # For persistent storage, upgrade to Starter and use a Render Disk
       - key: CHROMA_PERSIST_DIR

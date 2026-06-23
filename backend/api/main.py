@@ -157,11 +157,10 @@ Analyzes stocks using a 5-agent LangGraph pipeline:
 
 # --- CORS middleware (allows React frontend to call this API) ---
 _ALLOWED_ORIGINS = [
-    "http://localhost:3000",        # React dev server
-    "http://localhost:5173",        # Vite dev server
-    "https://quantmind.vercel.app", # Production frontend (Vercel)
-    # Allow any *.vercel.app preview deployments
-    "https://quantmind-frontend.vercel.app",
+    "http://localhost:3000",                    # React dev server
+    "http://localhost:5173",                    # Vite dev server
+    "https://quantmind.vercel.app",             # Production frontend (Vercel)
+    "https://quantmind-frontend.vercel.app",    # Vercel preview
 ]
 # Also allow any origin configured via env var (e.g. custom domain)
 _extra = getattr(settings, "frontend_url", None)
