@@ -1,18 +1,14 @@
 {
-  "comment": "QuantMind Frontend — Vercel deployment config",
   "buildCommand": "cd client && npm ci && npm run build",
   "outputDirectory": "client/dist",
   "installCommand": "echo 'skip root install'",
-  "framework": null,
 
   "rewrites": [
     {
-      "comment": "Proxy all REST /api/* → FastAPI backend on Render (strips /api prefix)",
       "source": "/api/(.*)",
       "destination": "https://quantmind-backend.onrender.com/$1"
     },
     {
-      "comment": "SPA fallback — serve index.html for all non-asset routes",
       "source": "/((?!api|assets|favicon).*)",
       "destination": "/index.html"
     }
