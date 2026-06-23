@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 
-// v2 key — forces dark default even for users who had old "light" stored
-const STORAGE_KEY = "qm-theme-v2";
+// v3 key — forces light default even for users who had old "dark" stored
+const STORAGE_KEY = "qm-theme-v3";
 
 export const useTheme = () => {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY) || "dark";
+    return localStorage.getItem(STORAGE_KEY) || "light";
   });
 
   useEffect(() => {

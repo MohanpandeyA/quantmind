@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -165,14 +166,26 @@ async def get_paper_portfolio() -> Dict[str, Any]:
         for p in positions
     ]
 
+    equity = float(account.get("equity", 0))
+    portfolio_value = float(account.get("portfolio_value", 0))
+    # Use portfolio_value (cash + market value of all positions) for P&L
+    # This reflects actual position values even before orders fully fill
+    base = portfolio_value if portfolio_value > 0 else equity
+    total_pnl = base - 100000.0
+    total_pnl_pct = total_pnl / 100000.0
+
+    # Also sum unrealized P&L directly from open positions
+    unrealized_pnl = sum(p["unrealized_pl"] for p in formatted_positions)
+
     return {
-        "equity": float(account.get("equity", 0)),
+        "equity": equity,
         "cash": float(account.get("cash", 0)),
         "buying_power": float(account.get("buying_power", 0)),
-        "portfolio_value": float(account.get("portfolio_value", 0)),
+        "portfolio_value": portfolio_value,
         "initial_capital": 100000.0,
-        "total_pnl": float(account.get("equity", 0)) - 100000.0,
-        "total_pnl_pct": (float(account.get("equity", 0)) - 100000.0) / 100000.0,
+        "total_pnl": total_pnl,
+        "total_pnl_pct": total_pnl_pct,
+        "unrealized_pnl": unrealized_pnl,
         "position_count": len(formatted_positions),
         "positions": formatted_positions,
         "account_status": account.get("status"),
@@ -241,7 +254,3 @@ async def cancel_order(order_id: str) -> Dict[str, str]:
     if resp.status_code == 204:
         return {"status": "cancelled", "order_id": order_id}
     raise HTTPException(status_code=resp.status_code, detail="Failed to cancel order")
-
-
-# asyncio needed for gather
-import asyncio  # noqa: E402

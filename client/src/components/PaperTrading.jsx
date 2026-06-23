@@ -68,8 +68,18 @@ const PaperTrading = () => {
     }
   };
 
-  const totalPnl = portfolio?.total_pnl || 0;
-  const totalPnlPct = portfolio?.total_pnl_pct || 0;
+  // Use unrealized_pnl (sum of open position P&L) for a more accurate display.
+  // Falls back to total_pnl (equity - initial_capital) if no positions yet.
+  const hasPositions = (portfolio?.positions?.length ?? 0) > 0;
+  const totalPnl = hasPositions
+    ? (portfolio?.unrealized_pnl ?? portfolio?.total_pnl ?? 0)
+    : (portfolio?.total_pnl ?? 0);
+  const totalPnlPct = portfolio?.total_pnl_pct ?? 0;
+
+  // Detect pending (accepted but not filled) orders
+  const hasPendingOrders = orders.some(
+    (o) => o.status === "accepted" || o.status === "pending_new" || o.status === "new"
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -90,6 +100,15 @@ const PaperTrading = () => {
           Paper trading uses virtual money ($100,000 starting balance). No real money is at risk.
         </p>
       </div>
+
+      {hasPendingOrders && (
+        <div style={{ padding: "10px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "10px" }}>
+          <p style={{ fontSize: "12px", color: "#1E40AF", margin: 0 }}>
+            ⏳ <strong>Orders pending fill</strong> — Alpaca paper trading fills market orders during US market hours
+            (Mon–Fri 9:30 AM – 4:00 PM ET). P&L will update once orders are filled.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="card" style={{ borderLeft: "4px solid #EF4444", background: "#FEF2F2" }}>
