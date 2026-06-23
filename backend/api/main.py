@@ -37,10 +37,10 @@ from api.routes.compare import router as compare_router
 from api.routes.earnings import router as earnings_router
 from api.routes.live_chart import router as live_chart_router
 from api.routes.optimize import router as optimize_router
+from api.routes.paper_trade import router as paper_trade_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.ticker import router as ticker_router
 from api.routes.walk_forward import router as walk_forward_router
-from api.routes.paper_trade import router as paper_trade_router
 from api.routes.whatif import router as whatif_router
 from api.schemas import HealthResponse
 from config.logging_config import get_logger, setup_logging, stop_logging

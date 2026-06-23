@@ -1,13 +1,16 @@
 """What-If Simulator route — POST /whatif."""
 
 from __future__ import annotations
+
 import re
 import time
 from typing import Optional
+
 import numpy as np
 import yfinance as yf
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
+
 from config.logging_config import get_logger
 from config.settings import settings
 
@@ -76,12 +79,12 @@ def _detect_scenario(question: str):
 
 def _run_mini_backtest(ticker: str, start: str, end: str, strategy: str) -> dict:
     try:
-        from engine.backtester import Backtester, BacktestConfig
-        from engine.strategies.momentum import MomentumStrategy
-        from engine.strategies.mean_reversion import MeanReversionStrategy
-        from engine.strategies.rsi_strategy import RSIStrategy
-        from engine.strategies.macd_strategy import MACDStrategy
+        from engine.backtester import BacktestConfig, Backtester
         from engine.strategies.base_strategy import StrategyConfig
+        from engine.strategies.macd_strategy import MACDStrategy
+        from engine.strategies.mean_reversion import MeanReversionStrategy
+        from engine.strategies.momentum import MomentumStrategy
+        from engine.strategies.rsi_strategy import RSIStrategy
 
         strat_config = StrategyConfig(initial_capital=100_000)
         strat_map = {
